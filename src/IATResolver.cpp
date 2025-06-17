@@ -80,7 +80,7 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
 
     for (auto it = sectionBegin; it != sectionEnd; ++it) {
 
-      const std::uint32_t rva = static_cast<std::uint32_t>(
+      const auto rva = static_cast<std::uint32_t>(
           reinterpret_cast<const std::uint8_t *>(it) - image.data());
 
       if (importDir.contains(rva)) {
@@ -145,7 +145,7 @@ bool DirectIATResolver::applyPatches(IATBuilder &iatBuilder,
            findDirectCalls(sectionBegin, sectionEnd, section->VirtualAddress,
                            functionPtrRVA)) {
 
-        LOG_INFO("found direct call at RVA 0x{:X}", callRVA);
+        // LOG_INFO("found direct call at RVA 0x{:X}", callRVA);
 
         callSites[callRVA] = resolvedImport;
       }

@@ -77,7 +77,7 @@ int dumpModule(VMM_HANDLE vmmHandle,
 
   if (const bool loadEAT = !resolveIAT.empty();
       !dumper.loadModuleInfo(loadEAT)) {
-    LOG_ERROR("failed to load module info.\n");
+    LOG_ERROR("failed to load module info.");
     return 1;
   }
 
@@ -85,14 +85,14 @@ int dumpModule(VMM_HANDLE vmmHandle,
 
   const auto moduleInfo = dumper.getModuleInfo(moduleName.c_str());
   if (!moduleInfo) {
-    LOG_ERROR("failed to find module info for {}.\n", moduleName);
+    LOG_ERROR("failed to find module info for {}.", moduleName);
     return 1;
   }
 
   LOG_INFO("found {} at 0x{:X} (size: {}).", moduleName, moduleInfo->ImageBase,
            moduleInfo->ImageSize);
 
-  LOG_INFO("reading image data...\n");
+  LOG_INFO("reading image data...");
 
   std::vector<std::uint8_t> moduleData(moduleInfo->ImageSize);
 
@@ -103,7 +103,7 @@ int dumpModule(VMM_HANDLE vmmHandle,
   moduleData.resize(bytesRead);
 
   if (bytesRead == 0) {
-    LOG_ERROR("failed to read module data.\n");
+    LOG_ERROR("failed to read module data.");
     return 1;
   }
 
@@ -134,18 +134,18 @@ int dumpModule(VMM_HANDLE vmmHandle,
   std::filesystem::path dstPath = std::filesystem::current_path() / moduleName;
   dstPath.replace_extension("dump" + dstPath.extension().string());
 
-  LOG_INFO("saving dump...\n");
+  LOG_INFO("saving dump...");
 
   std::ofstream file(dstPath,
                      std::ios::out | std::ios::binary | std::ios::trunc);
   if (!file) {
-    LOG_ERROR("failed to open file {}.\n", dstPath.string());
+    LOG_ERROR("failed to open file {}.", dstPath.string());
     return 1;
   }
 
   file.write(reinterpret_cast<const char *>(moduleData.data()),
              static_cast<std::streamsize>(moduleData.size()));
 
-  LOG_SUCCESS("dump has been written to {}.\n", dstPath.string());
+  LOG_SUCCESS("dump has been written to {}.", dstPath.string());
   return 0;
 }

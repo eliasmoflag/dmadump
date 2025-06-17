@@ -30,7 +30,7 @@ void Logger::write(const Level level, const std::string_view buffer) {
   switch (level) {
   case Level::Info:
     return write(
-        std::format("\x1b[97m[\x1b[93m*\x1b[37m] \x1b[90m{}\x1b[0m\n", buffer));
+        std::format("\x1b[97m[\x1b[93m*\x1b[97m] \x1b[90m{}\x1b[0m\n", buffer));
   case Level::Warn:
     return write(
         std::format("\x1b[97m[\x1b[93m!\x1b[97m] \x1b[33m{}\x1b[0m\n", buffer));

@@ -5,12 +5,12 @@
 #include <format>
 
 namespace dmadump {
-Dumper::Dumper(VMM_HANDLE vmmHandle, std::uint32_t processId)
+Dumper::Dumper(VMM_HANDLE vmmHandle, const std::uint32_t processId)
     : vmmHandle(vmmHandle), processId(processId) {}
 
 Dumper::~Dumper() { VMMDLL_Close(vmmHandle); }
 
-bool Dumper::loadModuleInfo(bool loadEAT) {
+bool Dumper::loadModuleInfo(const bool loadEAT) {
 
   PVMMDLL_MAP_MODULE moduleMap;
   if (!VMMDLL_Map_GetModuleU(vmmHandle, processId, &moduleMap,
@@ -54,8 +54,10 @@ const ModuleInfo *Dumper::getModuleInfo(const char *moduleName) const {
   return nullptr;
 }
 
-bool Dumper::readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
-                        std::uint32_t *bytesRead, bool forceUpdate) {
+bool Dumper::readMemory(const std::uint64_t va, void *buffer,
+                        const std::uint32_t size,
+                        std::uint32_t *bytesRead,
+                        const bool forceUpdate) {
 
   if (va == 0 || size == 0) {
     return false;
@@ -101,8 +103,8 @@ bool Dumper::readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
   return true;
 }
 
-bool Dumper::readString(std::uint64_t va, std::string &readInto,
-                        std::uint32_t maxRead, bool forceUpdate) {
+bool Dumper::readString(const std::uint64_t va, std::string &readInto,
+                        const std::uint32_t maxRead, const bool forceUpdate) {
 
   char buffer[16];
   for (std::uint32_t totalBytesRead = 0, bytesRead = 0;
@@ -135,7 +137,7 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
   }
 
   const auto optionalHeader = pe::getOptionalHeader64(header);
-  const auto &exportDirEntry = optionalHeader->ImportDirectory;
+  const auto &exportDirEntry = optionalHeader->ExportDirectory;
 
   if (exportDirEntry.VirtualAddress == 0) {
     return;
