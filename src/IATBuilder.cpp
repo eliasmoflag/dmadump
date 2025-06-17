@@ -160,9 +160,7 @@ void IATBuilder::rebuildImportDir(std::vector<std::uint8_t> &image) {
                          align<std::uint32_t>(image.size(), sectionAlignment),
                          sectionAlignment, fileAlignment);
 
-  section.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA |
-                             IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ |
-                             IMAGE_SCN_MEM_EXECUTE);
+  section.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE);
 
   constructImportDir(section);
   const auto importDirSize = section.getRawSize();
