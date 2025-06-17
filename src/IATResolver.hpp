@@ -30,10 +30,10 @@ public:
                             SectionBuilder &scnBuilder) = 0;
 
 protected:
-  std::vector<std::uint32_t>
+  static std::vector<std::uint32_t>
   findDirectCalls(const std::uint8_t *searchBegin,
                   const std::uint8_t *searchEnd, std::uint32_t searchRVA,
-                  std::uint32_t functionPtrRVA) const;
+                  std::uint32_t functionPtrRVA) ;
 
   std::optional<std::pair<const ModuleInfo *, const ExportData *>>
   findExportByVA(std::uint64_t va) const;
@@ -47,7 +47,7 @@ class DirectIATResolver : public IATResolver {
 public:
   DirectIATResolver(Dumper &dumper, std::uint64_t allocationBase);
 
-  virtual ~DirectIATResolver() = default;
+  ~DirectIATResolver() override = default;
 
   bool resolve(const std::vector<std::uint8_t> &image) override;
 

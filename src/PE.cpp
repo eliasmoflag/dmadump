@@ -2,14 +2,14 @@
 #include <algorithm>
 
 namespace dmadump::pe {
-ImageSectionHeader *ImageNtHeaders::getSectionHeader(std::uint16_t i) {
+ImageSectionHeader *ImageNtHeaders::getSectionHeader(const std::uint16_t i) {
   return &reinterpret_cast<ImageSectionHeader *>(
       reinterpret_cast<std::uintptr_t>(&FileHeader) + sizeof(ImageFileHeader) +
       FileHeader.SizeOfOptionalHeader)[i];
 }
 
 const ImageSectionHeader *
-ImageNtHeaders::getSectionHeader(std::uint16_t i) const {
+ImageNtHeaders::getSectionHeader(const std::uint16_t i) const {
   return &reinterpret_cast<const ImageSectionHeader *>(
       reinterpret_cast<std::uintptr_t>(&FileHeader) + sizeof(ImageFileHeader) +
       FileHeader.SizeOfOptionalHeader)[i];
@@ -20,7 +20,7 @@ std::uint16_t ImageNtHeaders::getSectionCount() const {
 }
 
 std::optional<std::uint32_t>
-ImageNtHeaders::fileOffsetToRVA(std::uint32_t fileOffset) const {
+ImageNtHeaders::fileOffsetToRVA(const std::uint32_t fileOffset) const {
   for (std::uint16_t i = 0; i < getSectionCount(); i++) {
     const auto section = getSectionHeader(i);
 
@@ -68,14 +68,14 @@ std::uint64_t ImageNtHeaders::getSectionEndVA() const {
 
 ImageNtHeaders *getNtHeaders(void *imageData) {
   return reinterpret_cast<ImageNtHeaders *>(
-      reinterpret_cast<std::uint8_t *>(imageData) +
-      reinterpret_cast<const ImageDosHeader *>(imageData)->e_lfanew);
+      static_cast<std::uint8_t *>(imageData) +
+      static_cast<const ImageDosHeader *>(imageData)->e_lfanew);
 }
 
 const ImageNtHeaders *getNtHeaders(const void *imageData) {
   return reinterpret_cast<const ImageNtHeaders *>(
-      reinterpret_cast<const std::uint8_t *>(imageData) +
-      reinterpret_cast<const ImageDosHeader *>(imageData)->e_lfanew);
+      static_cast<const std::uint8_t *>(imageData) +
+      static_cast<const ImageDosHeader *>(imageData)->e_lfanew);
 }
 
 ImageFileHeader *getFileHeader(void *imageData) {

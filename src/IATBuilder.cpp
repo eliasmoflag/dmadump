@@ -61,7 +61,7 @@ void ImportLibrary::addFunction(const std::string &functionName) {
   Functions.push_back(function);
 }
 
-const std::vector<ImportLibrary> IATBuilder::getImports() const {
+const std::vector<ImportLibrary> &IATBuilder::getImports() const {
   return imports;
 }
 
@@ -250,7 +250,7 @@ public:
 
 void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
                                      SectionBuilder &scnBuilder,
-                                     std::uint32_t originalImportDirVA) {
+                                     std::uint32_t originalImportDirVA) const {
 
   std::vector<RedirectStubInfo> redirectStubInfos;
 
@@ -285,12 +285,12 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
 
       const auto stubRVA = scnBuilder.getRVA() + scnBuilder.getRawSize();
 
-      const auto addressOfDataRVA = *ntHeaders->fileOffsetToRVA(
+      const std::uint32_t addressOfDataRVA = *ntHeaders->fileOffsetToRVA(
           reinterpret_cast<std::uint8_t *>(&firstThunk->u1.AddressOfData) -
           image.data());
 
       *reinterpret_cast<std::int32_t *>(&stub[2]) =
-          addressOfDataRVA - (stubRVA + sizeof(stub));
+          static_cast<std::int32_t>(addressOfDataRVA - (stubRVA + sizeof(stub)));
 
       RedirectStubInfo redirectInfo;
       redirectInfo.Library = libraryName;
@@ -338,7 +338,7 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
   }
 }
 
-bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) {
+bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) const {
 
   const auto importDirLayout = getImportDirLayout();
 

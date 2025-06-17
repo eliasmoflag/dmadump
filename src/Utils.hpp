@@ -4,7 +4,6 @@
 #include <memory>
 #include <optional>
 #include <expected>
-#include <functional>
 #include <type_traits>
 #include <vmmdll.h>
 #include "PE.hpp"
@@ -34,4 +33,6 @@ std::string toLower(std::string_view str);
 bool iequals(std::string_view lhs, std::string_view rhs);
 
 bool compareLibraryName(std::string_view lhs, std::string_view rhs);
+
+std::string simplifyLibraryName(const std::string &moduleName);
 } // namespace dmadump

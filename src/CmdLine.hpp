@@ -2,15 +2,20 @@
 #include <string>
 #include <set>
 #include <optional>
+#include <cxxopts.hpp>
 
 namespace dmadump {
-class CmdLine {
+class CmdLine : protected cxxopts::Options {
 public:
-  static std::optional<CmdLine> load(const int argc, const char *const argv[]);
+  CmdLine();
+
+  bool load(int argc, const char *const argv[]);
+
+  std::string help() const;
 
   std::optional<std::string> ProcessName;
   std::string ModuleName;
   std::set<std::string> IAT;
-  bool Debug;
+  bool Debug{};
 };
 } // namespace dmadump

@@ -50,8 +50,6 @@ void convertImageSectionsRawToVA(void *image) {
 
   for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); i++) {
     const auto section = ntHeaders->getSectionHeader(i);
-    const auto sectionHeaderEnd = reinterpret_cast<std::uint8_t *>(section) +
-                                  sizeof(pe::ImageSectionHeader);
 
     section->PointerToRawData = section->VirtualAddress;
     section->SizeOfRawData = section->Misc.VirtualSize;
@@ -68,18 +66,18 @@ pe::ImageSectionHeader *appendImageSectionHeader(void *image) {
   return sectionHeader;
 }
 
-std::string toLower(std::string_view str) {
+std::string toLower(const std::string_view str) {
   std::string result;
 
   for (const auto &c : str) {
-    result.push_back(std::tolower(c));
+    result.push_back(static_cast<char>(std::tolower(c)));
   }
 
   return result;
 }
 
-bool iequals(std::string_view lhs, std::string_view rhs) {
-  const auto pred = [](char lhs, char rhs) {
+bool iequals(const std::string_view lhs, const std::string_view rhs) {
+  const auto pred = [](const char lhs, const char rhs) {
     return std::tolower(lhs) == std::tolower(rhs);
   };
 
@@ -87,8 +85,22 @@ bool iequals(std::string_view lhs, std::string_view rhs) {
          std::equal(lhs.begin(), lhs.end(), rhs.begin(), pred);
 }
 
-bool compareLibraryName(std::string_view lhs, std::string_view rhs) {
+bool compareLibraryName(const std::string_view lhs,
+                        const std::string_view rhs) {
   return iequals(lhs.substr(0, lhs.find_last_of('.')),
                  rhs.substr(0, rhs.find_last_of('.')));
+}
+
+std::string simplifyLibraryName(const std::string &moduleName) {
+
+  std::filesystem::path path(moduleName);
+  path.replace_extension("");
+
+  std::string result;
+  for (const auto &c : path.string()) {
+    result.push_back(static_cast<char>(std::tolower(c)));
+  }
+
+  return result;
 }
 } // namespace dmadump

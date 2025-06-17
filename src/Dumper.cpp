@@ -1,12 +1,10 @@
 #include "Dumper.hpp"
 #include "PE.hpp"
+#include "Utils.hpp"
 #include <filesystem>
 #include <format>
-#include <stdexcept>
 
 namespace dmadump {
-static std::string simplifyModuleName(const std::string &moduleName);
-
 Dumper::Dumper(VMM_HANDLE vmmHandle, std::uint32_t processId)
     : vmmHandle(vmmHandle), processId(processId) {}
 
@@ -24,7 +22,7 @@ bool Dumper::loadModuleInfo(bool loadEAT) {
     const auto &moduleEntry = moduleMap->pMap[i];
 
     ModuleInfo moduleInfo;
-    moduleInfo.Name = simplifyModuleName(
+    moduleInfo.Name = simplifyLibraryName(
         std::filesystem::path(moduleEntry.uszText).filename().string());
     moduleInfo.FilePath = moduleEntry.uszFullName;
     moduleInfo.ImageBase = moduleEntry.vaBase;
@@ -48,7 +46,7 @@ Dumper::getModuleInfo() const {
 }
 
 const ModuleInfo *Dumper::getModuleInfo(const char *moduleName) const {
-  const auto found = imageInfo.find(simplifyModuleName(moduleName));
+  const auto found = imageInfo.find(simplifyLibraryName(moduleName));
   if (found != imageInfo.end()) {
     return &found->second;
   }
@@ -91,7 +89,7 @@ bool Dumper::readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
         std::min<std::uint32_t>(0x1000 - readOffset, size - numBytesRead);
 
     std::copy_n(cached.get() + readOffset, readSize,
-                reinterpret_cast<std::uint8_t *>(buffer) + numBytesRead);
+                static_cast<std::uint8_t *>(buffer) + numBytesRead);
 
     numBytesRead += readSize;
   }
@@ -189,18 +187,5 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
 
     moduleInfo.EAT.push_back(exportData);
   }
-}
-
-std::string simplifyModuleName(const std::string &moduleName) {
-
-  std::filesystem::path path(moduleName);
-  path.replace_extension("");
-
-  std::string result;
-  for (const auto &c : path.string()) {
-    result.push_back(std::tolower(c));
-  }
-
-  return result;
 }
 } // namespace dmadump

@@ -2,7 +2,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <optional>
 #include <unordered_map>
 #include <filesystem>
 #include <vmmdll.h>

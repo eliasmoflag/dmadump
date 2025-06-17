@@ -6,7 +6,7 @@
 #endif
 
 namespace dmadump {
-Logger::Logger() {
+void Logger::init() {
 #ifdef _WIN32
   const auto outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
   if (outputHandle != INVALID_HANDLE_VALUE) {
@@ -19,19 +19,14 @@ Logger::Logger() {
 #endif
 }
 
-Logger &Logger::get() {
-  static Logger instance;
-  return instance;
-}
-
-void Logger::write(const std::string_view buffer) const {
+void Logger::write(const std::string_view buffer) {
   std::cout << buffer;
   if (buffer.ends_with('\n')) {
     std::cout << std::flush;
   }
 }
 
-void Logger::write(const Level level, const std::string_view buffer) const {
+void Logger::write(const Level level, const std::string_view buffer) {
   switch (level) {
   case Level::Info:
     return write(

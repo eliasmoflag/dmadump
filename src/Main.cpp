@@ -3,12 +3,14 @@
 #include <fstream>
 #include <memory>
 
-#include "Logging.hpp"
+#include "CmdLine.hpp"
 #include "Dumper.hpp"
 #include "IATBuilder.hpp"
 #include "IATResolver.hpp"
+#include "Logging.hpp"
 #include "Utils.hpp"
-#include "CmdLine.hpp"
+
+#include <iostream>
 
 using namespace dmadump;
 
@@ -19,15 +21,18 @@ static int dumpModule(VMM_HANDLE vmmHandle,
 
 int main(const int argc, const char *const argv[]) {
 
-  const auto cmdLine = CmdLine::load(argc, argv);
-  if (!cmdLine) {
+  CmdLine cmdLine;
+  if (!cmdLine.load(argc, argv)) {
+    std::cout << "invalid arguments specified.\n\n" << cmdLine.help() << std::endl;
     return 1;
   }
 
+  Logger::init();
+
   LOG_INFO("initializing vmm...");
 
-  std::vector<const char *> vmmArgs{"-device", "fpga://algo=0"};
-  if (cmdLine->Debug) {
+  std::vector vmmArgs{"-device", "fpga://algo=0"};
+  if (cmdLine.Debug) {
     vmmArgs.insert(vmmArgs.end(), {"-v", "-printf"});
   }
 
@@ -41,8 +46,8 @@ int main(const int argc, const char *const argv[]) {
     return 1;
   }
 
-  return dumpModule(vmmHandle->get(), cmdLine->ProcessName, cmdLine->ModuleName,
-                    cmdLine->IAT);
+  return dumpModule(vmmHandle->get(), cmdLine.ProcessName, cmdLine.ModuleName,
+                    cmdLine.IAT);
 }
 
 int dumpModule(VMM_HANDLE vmmHandle,
@@ -70,8 +75,8 @@ int dumpModule(VMM_HANDLE vmmHandle,
 
   LOG_INFO("loading module information...");
 
-  const bool loadEAT = !resolveIAT.empty();
-  if (!dumper.loadModuleInfo(loadEAT)) {
+  if (const bool loadEAT = !resolveIAT.empty();
+      !dumper.loadModuleInfo(loadEAT)) {
     LOG_ERROR("failed to load module info.\n");
     return 1;
   }
@@ -139,7 +144,7 @@ int dumpModule(VMM_HANDLE vmmHandle,
   }
 
   file.write(reinterpret_cast<const char *>(moduleData.data()),
-             moduleData.size());
+             static_cast<std::streamsize>(moduleData.size()));
 
   LOG_SUCCESS("dump has been written to {}.\n", dstPath.string());
   return 0;

@@ -11,7 +11,7 @@ IATResolver::IATResolver(Dumper &dumper, std::uint64_t allocationBase)
 
 std::vector<std::uint32_t> IATResolver::findDirectCalls(
     const std::uint8_t *searchBegin, const std::uint8_t *searchEnd,
-    std::uint32_t searchRVA, std::uint32_t functionPtrRVA) const {
+    const std::uint32_t searchRVA, const std::uint32_t functionPtrRVA) {
 
   std::vector<std::uint32_t> result;
 
@@ -190,7 +190,7 @@ bool DirectIATResolver::applyPatches(IATBuilder &iatBuilder,
                                         imageData);
 
         *reinterpret_cast<std::int32_t *>(imageData + callSite + 2) =
-            addressOfDataRVA - (callSite + 6);
+            static_cast<std::int32_t>(addressOfDataRVA - (callSite + 6));
       }
     }
   }

@@ -3,55 +3,52 @@
 #include <format>
 
 namespace dmadump {
-#define LOG_WRITE(format, ...) Logger::get().write(format, ##__VA_ARGS__)
-#define LOG_INFO(format, ...) Logger::get().info(format, ##__VA_ARGS__)
-#define LOG_WARN(format, ...) Logger::get().warn(format, ##__VA_ARGS__)
-#define LOG_ERROR(format, ...) Logger::get().error(format, ##__VA_ARGS__)
-#define LOG_SUCCESS(format, ...) Logger::get().success(format, ##__VA_ARGS__)
+#define LOG_WRITE(format, ...) Logger::write(format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...) Logger::info(format, ##__VA_ARGS__)
+#define LOG_WARN(format, ...) Logger::warn(format, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) Logger::error(format, ##__VA_ARGS__)
+#define LOG_SUCCESS(format, ...) Logger::success(format, ##__VA_ARGS__)
 
 class Logger {
 public:
-  static Logger &get();
-
   enum Level { Info, Warn, Error, Success, COUNT };
 
-  void write(const std::string_view buffer) const;
+  static void init();
 
-  void write(const Level level, const std::string_view buffer) const;
+  static void write(std::string_view buffer);
+
+  static void write(Level level, std::string_view buffer);
 
   template <typename... arguments>
-  inline void write(const std::string_view format, arguments &&...args) const {
+  static inline void write(const std::string_view format, arguments &&...args) {
     write(std::vformat(format, std::make_format_args(args...)));
   }
 
   template <typename... arguments>
-  inline void write(const Level level, const std::string_view format,
-                    arguments &&...args) const {
+  static inline void write(const Level level, const std::string_view format,
+                    arguments &&...args) {
     write(level, std::vformat(format, std::make_format_args(args...)));
   }
 
   template <typename... arguments>
-  inline void info(const std::string_view format, arguments &&...args) const {
+  static inline void info(const std::string_view format, arguments &&...args) {
     write(Level::Info, std::vformat(format, std::make_format_args(args...)));
   }
 
   template <typename... arguments>
-  inline void warn(const std::string_view format, arguments &&...args) const {
+  static inline void warn(const std::string_view format, arguments &&...args) {
     write(Level::Warn, std::vformat(format, std::make_format_args(args...)));
   }
 
   template <typename... arguments>
-  inline void error(const std::string_view format, arguments &&...args) const {
+  static inline void error(const std::string_view format, arguments &&...args) {
     write(Level::Error, std::vformat(format, std::make_format_args(args...)));
   }
 
   template <typename... arguments>
-  inline void success(const std::string_view format,
-                      arguments &&...args) const {
+  static inline void success(const std::string_view format,
+                      arguments &&...args) {
     write(Level::Success, std::vformat(format, std::make_format_args(args...)));
   }
-
-private:
-  Logger();
 };
 } // namespace dmadump

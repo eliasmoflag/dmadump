@@ -2,10 +2,10 @@
 #include "Utils.hpp"
 
 namespace dmadump {
-SectionBuilder::SectionBuilder(std::uint32_t sectionOffset,
-                               std::uint32_t sectionRVA,
-                               std::uint32_t sectionAlignment,
-                               std::uint32_t fileAlignment)
+SectionBuilder::SectionBuilder(const std::uint32_t sectionOffset,
+                               const std::uint32_t sectionRVA,
+                               const std::uint32_t sectionAlignment,
+                               const std::uint32_t fileAlignment)
     : sectionOffset(sectionOffset), sectionRVA(sectionRVA),
       sectionAlignment(sectionAlignment), fileAlignment(fileAlignment),
       characteristics(0) {}

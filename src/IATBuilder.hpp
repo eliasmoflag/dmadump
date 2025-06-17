@@ -2,7 +2,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <unordered_map>
 #include <unordered_set>
 
 namespace dmadump {
@@ -49,7 +48,7 @@ public:
     return *this;
   }
 
-  const std::vector<ImportLibrary> getImports() const;
+  const std::vector<ImportLibrary> &getImports() const;
 
   ImportDirLayout getImportDirLayout() const;
 
@@ -60,16 +59,16 @@ protected:
 
   void rebuildImportDir(std::vector<std::uint8_t> &image);
 
-  void updateHeaders(std::vector<std::uint8_t> &image);
+  static void updateHeaders(std::vector<std::uint8_t> &image);
 
   void applyPatches(std::vector<std::uint8_t> &image,
                     std::uint32_t originalImportDirVA);
 
   void redirectOriginalIAT(std::vector<std::uint8_t> &image,
                            SectionBuilder &scnBuilder,
-                           std::uint32_t originalImportDirVA);
+                           std::uint32_t originalImportDirVA) const;
 
-  bool constructImportDir(SectionBuilder &sectionBuilder);
+  bool constructImportDir(SectionBuilder &sectionBuilder) const;
 
 protected:
   Dumper &dumper;
