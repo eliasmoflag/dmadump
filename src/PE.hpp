@@ -100,6 +100,11 @@ struct ImageFileHeader {
 struct ImageDataDirectory {
   std::uint32_t VirtualAddress;
   std::uint32_t Size;
+
+  inline bool contains(std::uint32_t rva) const {
+    return VirtualAddress && Size && rva >= VirtualAddress &&
+           rva < VirtualAddress + Size;
+  }
 };
 
 struct ImageOptionalHeader32 {

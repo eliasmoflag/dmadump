@@ -53,6 +53,7 @@ DirectIATResolver::DirectIATResolver(Dumper &dumper,
 
 bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   const auto ntHeaders = pe::getNtHeaders(image.data());
+  const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
   for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); i++) {
     const auto section = ntHeaders->getSectionHeader(i);
@@ -77,22 +78,26 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
         image.data() + section->VirtualAddress + section->Misc.VirtualSize -
         section->Misc.VirtualSize % 8);
 
-    for (auto it = sectionBegin; it != sectionEnd; it++) {
+    for (auto it = sectionBegin; it != sectionEnd; ++it) {
+
+      const std::uint32_t rva = static_cast<std::uint32_t>(
+          reinterpret_cast<const std::uint8_t *>(it) - image.data());
+
+      if (importDir.contains(rva)) {
+        continue;
+      }
 
       if (const auto match = findExportByVA(*it)) {
         const auto &[moduleInfo, exportData] = *match;
-
-        const std::uint32_t functionPtrRVA =
-            reinterpret_cast<const std::uint8_t *>(it) - image.data();
 
         ResolvedImport resolvedImport;
         resolvedImport.Library = moduleInfo->Name;
         resolvedImport.Function = exportData->Name;
 
-        directImportsByRVA.insert({functionPtrRVA, resolvedImport});
+        directImportsByRVA.insert({rva, resolvedImport});
 
         LOG_INFO("found import {}:{} at RVA 0x{:X}", moduleInfo->Name,
-                 exportData->Name, functionPtrRVA);
+                 exportData->Name, rva);
       }
     }
   }
