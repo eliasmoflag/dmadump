@@ -1,19 +1,22 @@
 #include "Logging.hpp"
+#include <iostream>
+
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 
 namespace dmadump {
 Logger::Logger() {
-  outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-
+#ifdef _WIN32
+  const auto outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
   if (outputHandle != INVALID_HANDLE_VALUE) {
     if (DWORD mode{0}; GetConsoleMode(outputHandle, &mode)) {
       if ((mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING) == 0) {
         SetConsoleMode(outputHandle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
       }
     }
-  } else {
-    outputHandle = nullptr;
   }
+#endif
 }
 
 Logger &Logger::get() {
@@ -22,8 +25,9 @@ Logger &Logger::get() {
 }
 
 void Logger::write(const std::string_view buffer) const {
-  if (outputHandle) {
-    WriteConsoleA(outputHandle, buffer.data(), buffer.size(), nullptr, nullptr);
+  std::cout << buffer;
+  if (buffer.ends_with('\n')) {
+    std::cout << std::flush;
   }
 }
 
@@ -41,6 +45,8 @@ void Logger::write(const Level level, const std::string_view buffer) const {
   case Level::Success:
     return write(
         std::format("\x1b[97m[\x1b[92m+\x1b[97m] \x1b[37m{}\x1b[0m\n", buffer));
+  default:
+    return;
   }
 }
 } // namespace dmadump

@@ -1,7 +1,8 @@
+#include "Dumper.hpp"
+#include "PE.hpp"
+#include <filesystem>
 #include <format>
 #include <stdexcept>
-#include <filesystem>
-#include "Dumper.hpp"
 
 namespace dmadump {
 static std::string simplifyModuleName(const std::string &moduleName);
@@ -135,29 +136,14 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
     return;
   }
 
-  const auto dosHeader = reinterpret_cast<const IMAGE_DOS_HEADER *>(header);
-  if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
-    return;
-  }
-
-  const auto ntHeaders =
-      reinterpret_cast<const IMAGE_NT_HEADERS *>(header + dosHeader->e_lfanew);
-  if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) {
-    return;
-  }
-
-  if (ntHeaders->FileHeader.Machine != IMAGE_FILE_MACHINE_AMD64) {
-    return;
-  }
-
-  const auto &exportDirEntry =
-      ntHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+  const auto optionalHeader = pe::getOptionalHeader64(header);
+  const auto &exportDirEntry = optionalHeader->ImportDirectory;
 
   if (exportDirEntry.VirtualAddress == 0) {
     return;
   }
 
-  IMAGE_EXPORT_DIRECTORY exportDir = {0};
+  pe::ImageExportDirectory exportDir = {0};
   if (!readMemory(moduleInfo.ImageBase + exportDirEntry.VirtualAddress,
                   &exportDir, sizeof(exportDir), nullptr)) {
     return;

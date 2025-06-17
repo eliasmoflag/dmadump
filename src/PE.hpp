@@ -260,6 +260,20 @@ struct ImageImportByName {
   char Name[1];
 };
 
+struct ImageExportDirectory {
+    std::uint32_t   Characteristics;
+    std::uint32_t   TimeDateStamp;
+    std::uint16_t    MajorVersion;
+    std::uint16_t    MinorVersion;
+    std::uint32_t   Name;
+    std::uint32_t   Base;
+    std::uint32_t   NumberOfFunctions;
+    std::uint32_t   NumberOfNames;
+    std::uint32_t   AddressOfFunctions;
+    std::uint32_t   AddressOfNames;
+    std::uint32_t   AddressOfNameOrdinals;
+};
+
 ImageNtHeaders *getNtHeaders(void *imageData);
 const ImageNtHeaders *getNtHeaders(const void *imageData);
 

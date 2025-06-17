@@ -14,7 +14,7 @@ std::optional<CmdLine> CmdLine::load(const int argc, const char *const argv[]) {
       ("p,process", "target process to dump", cxxopts::value<std::string>())
       ("m,module", "target module to dump", cxxopts::value<std::string>())
       ("iat", "type of IAT obfuscation to target", cxxopts::value<std::vector<std::string>>())
-      ("debug", "show debug output", cxxopts::value<std::string>());
+      ("debug", "show debug output", cxxopts::value<bool>());
   // clang-format on
 
   const auto options = parser.parse(argc, argv);

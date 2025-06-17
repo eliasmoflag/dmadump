@@ -2,14 +2,12 @@
 #include <string_view>
 #include <format>
 
-typedef void *HANDLE;
-
 namespace dmadump {
-#define LOG_WRITE(format, ...) Logger::get().write(format, __VA_ARGS__)
-#define LOG_INFO(format, ...) Logger::get().info(format, __VA_ARGS__)
-#define LOG_WARN(format, ...) Logger::get().warn(format, __VA_ARGS__)
-#define LOG_ERROR(format, ...) Logger::get().error(format, __VA_ARGS__)
-#define LOG_SUCCESS(format, ...) Logger::get().success(format, __VA_ARGS__)
+#define LOG_WRITE(format, ...) Logger::get().write(format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...) Logger::get().info(format, ##__VA_ARGS__)
+#define LOG_WARN(format, ...) Logger::get().warn(format, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) Logger::get().error(format, ##__VA_ARGS__)
+#define LOG_SUCCESS(format, ...) Logger::get().success(format, ##__VA_ARGS__)
 
 class Logger {
 public:
@@ -53,9 +51,7 @@ public:
     write(Level::Success, std::vformat(format, std::make_format_args(args...)));
   }
 
-protected:
-  HANDLE outputHandle{nullptr};
-
+private:
   Logger();
 };
 } // namespace dmadump

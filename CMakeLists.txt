@@ -22,7 +22,7 @@ source_group(TREE "./" FILES ${SOURCES})
 
 add_executable(dmadump ${SOURCES})
 
-target_link_libraries(dmadump PRIVATE MemProcFS cxxopts::cxxopts)
+target_link_libraries(dmadump PRIVATE LeechCore VMM cxxopts::cxxopts)
 
 target_compile_features(dmadump PRIVATE cxx_std_23)
 

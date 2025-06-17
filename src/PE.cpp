@@ -1,4 +1,5 @@
 #include "PE.hpp"
+#include <algorithm>
 
 namespace dmadump::pe {
 ImageSectionHeader *ImageNtHeaders::getSectionHeader(std::uint16_t i) {

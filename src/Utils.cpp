@@ -65,7 +65,6 @@ pe::ImageSectionHeader *appendImageSectionHeader(void *image) {
   const auto sectionHeader =
       ntHeaders->getSectionHeader(ntHeaders->FileHeader.NumberOfSections++);
 
-  std::memset(sectionHeader, 0x00, sizeof(sectionHeader));
   return sectionHeader;
 }
 
