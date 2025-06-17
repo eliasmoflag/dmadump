@@ -26,11 +26,12 @@ FetchContent_MakeAvailable(MemProcFS)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   add_library(LeechCore INTERFACE)
+  target_include_directories(LeechCore INTERFACE ${memprocfs_SOURCE_DIR}/includes)
+  target_link_libraries(LeechCore INTERFACE ${memprocfs_SOURCE_DIR}/includes/lib64/leechcore.lib)
+
   add_library(VMM INTERFACE)
-  
-  target_include_directories(VMM INTERFACE
-    ${memprocfs_SOURCE_DIR}/includes
-  )
+  target_include_directories(VMM INTERFACE ${memprocfs_SOURCE_DIR}/includes)
+  target_link_libraries(VMM INTERFACE ${memprocfs_SOURCE_DIR}/includes/lib64/vmm.lib)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_compile_definitions(MACOS)
 
