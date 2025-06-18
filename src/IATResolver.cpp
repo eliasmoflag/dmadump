@@ -65,6 +65,7 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
 
     const bool validCharacteristics =
         (section->Characteristics & IMAGE_SCN_MEM_READ) != 0 &&
+        (section->Characteristics & IMAGE_SCN_MEM_WRITE) != 0 &&
         (section->Characteristics & IMAGE_SCN_MEM_EXECUTE) == 0;
 
     if (!validCharacteristics) {
@@ -102,11 +103,7 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
     }
   }
 
-  if (directImportsByRVA.empty()) {
-    LOG_INFO("resolved {} direct imports", directImportsByRVA.size());
-  } else {
-    LOG_SUCCESS("resolved {} direct imports", directImportsByRVA.size());
-  }
+  LOG_INFO("resolved {} direct imports", directImportsByRVA.size());
 
   return true;
 }
@@ -154,6 +151,7 @@ bool DirectIATResolver::applyPatches(IATBuilder &iatBuilder,
 
   const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
+  std::size_t patchCount = 0;
   for (const auto &[callSite, resolvedImport] : callSites) {
 
     auto importDesc = reinterpret_cast<const pe::ImageImportDescriptor *>(
@@ -191,9 +189,13 @@ bool DirectIATResolver::applyPatches(IATBuilder &iatBuilder,
 
         *reinterpret_cast<std::int32_t *>(imageData + callSite + 2) =
             static_cast<std::int32_t>(addressOfDataRVA - (callSite + 6));
+
+        ++patchCount;
       }
     }
   }
+
+  LOG_INFO("patched {} direct import calls", patchCount);
 
   return true;
 }
