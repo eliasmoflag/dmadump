@@ -14,7 +14,7 @@ std::vector<std::uint32_t> IATResolver::findDirectCalls(
 
   std::vector<std::uint32_t> result;
 
-  for (auto it = searchBegin; it != searchEnd - 6; it++) {
+  for (auto it = searchBegin; it != searchEnd - 6; ++it) {
 
     if (it[0] == 0xff && it[1] == 0x15) {
       const std::int32_t ripRelTarget =
@@ -54,7 +54,7 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   const auto ntHeaders = pe::getNtHeaders(image.data());
   const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
-  for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); i++) {
+  for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); ++i) {
     const auto section = ntHeaders->getSectionHeader(i);
 
     if ((section->VirtualAddress & 0xfff) != 0 ||
@@ -121,9 +121,30 @@ bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
                                      SectionBuilder &scnBuilder) {
 
   const auto ntHeaders = pe::getNtHeaders(imageData);
+  const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
+
+  LOG_INFO("redirecting direct IAT to stubs...");
+
+  std::size_t iatPatchCount = 0;
+  for (const auto &[functionPtrRVA, resolvedImport] : directImportsByRVA) {
+    if (const auto importFunction = iatBuilder.findImportFunction(
+            resolvedImport.Library, resolvedImport.Function);
+        importFunction && importFunction->RedirectStubRVA) {
+
+      *reinterpret_cast<std::uint64_t *>(imageData + functionPtrRVA) =
+          iatBuilder.getModuleInfo()->ImageBase +
+          importFunction->RedirectStubRVA;
+
+      ++iatPatchCount;
+    }
+  }
+
+  LOG_INFO("patched {} direct IAT entries.", iatPatchCount);
+
+  LOG_INFO("searching for direct IAT calls...");
 
   std::unordered_map<std::uint32_t, ResolvedImport> callSites;
-  for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); i++) {
+  for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); ++i) {
     const auto section = ntHeaders->getSectionHeader(i);
 
     if (!(section->Characteristics & IMAGE_SCN_MEM_EXECUTE)) {
@@ -147,15 +168,17 @@ bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
     }
   }
 
-  const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
+  LOG_INFO("found {} direct IAT calls.", callSites.size());
 
-  std::size_t patchCount = 0;
+  LOG_INFO("patching direct IAT calls...");
+
+  std::size_t callPatchCount = 0;
   for (const auto &[callSite, resolvedImport] : callSites) {
 
     auto importDesc = reinterpret_cast<const pe::ImageImportDescriptor *>(
         imageData + importDir.VirtualAddress);
 
-    for (; importDesc->Name != 0; importDesc++) {
+    for (; importDesc->Name != 0; ++importDesc) {
 
       const auto libraryName =
           reinterpret_cast<const char *>(imageData + importDesc->Name);
@@ -188,12 +211,12 @@ bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
         *reinterpret_cast<std::int32_t *>(imageData + callSite + 2) =
             static_cast<std::int32_t>(addressOfDataRVA - (callSite + 6));
 
-        ++patchCount;
+        ++callPatchCount;
       }
     }
   }
 
-  LOG_INFO("patched {} direct import calls", patchCount);
+  LOG_INFO("patched {} direct import calls", callPatchCount);
 
   return true;
 }

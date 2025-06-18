@@ -45,7 +45,7 @@ Dumper::getModuleInfo() const {
   return imageInfo;
 }
 
-const ModuleInfo *Dumper::getModuleInfo(const char *moduleName) const {
+const ModuleInfo *Dumper::getModuleInfo(const std::string &moduleName) const {
   const auto found = imageInfo.find(simplifyLibraryName(moduleName));
   if (found != imageInfo.end()) {
     return &found->second;

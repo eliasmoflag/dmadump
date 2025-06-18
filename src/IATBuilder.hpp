@@ -10,9 +10,17 @@ class ModuleInfo;
 class IATResolver;
 class SectionBuilder;
 
+class RedirectStubInfo {
+public:
+  std::string Library;
+  std::string Function;
+  std::uint32_t RVA{0};
+};
+
 class ImportFunction {
 public:
   std::string Name;
+  std::uint32_t RedirectStubRVA{0};
 };
 
 class ImportLibrary {
@@ -57,6 +65,12 @@ public:
 
   ImportDirLayout getImportDirLayout() const;
 
+  const ImportFunction *findImportFunction(std::string_view library,
+                                           std::string_view function) const;
+
+  ImportFunction *findImportFunction(std::string_view library,
+                                     std::string_view function);
+
 protected:
   void addOriginalImports(const std::vector<std::uint8_t> &image);
 
@@ -64,16 +78,19 @@ protected:
 
   void rebuildImportDir(std::vector<std::uint8_t> &image);
 
-  static void updateHeaders(std::vector<std::uint8_t> &image);
-
   void applyPatches(std::vector<std::uint8_t> &image,
                     std::uint32_t originalImportDirVA);
+
+  void buildRedirectStubs(const std::vector<std::uint8_t> &image,
+                          SectionBuilder &scnBuilder);
 
   void redirectOriginalIAT(std::vector<std::uint8_t> &image,
                            SectionBuilder &scnBuilder,
                            std::uint32_t originalImportDirVA) const;
 
   bool constructImportDir(SectionBuilder &sectionBuilder) const;
+
+  static void updateHeaders(std::vector<std::uint8_t> &image);
 
 protected:
   Dumper &dumper;

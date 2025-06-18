@@ -39,7 +39,7 @@ public:
 
   const std::unordered_map<std::string, ModuleInfo> &getModuleInfo() const;
 
-  const ModuleInfo *getModuleInfo(const char *moduleName) const;
+  const ModuleInfo *getModuleInfo(const std::string &moduleName) const;
 
   bool readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
                   std::uint32_t *bytesRead = nullptr, bool forceUpdate = false);

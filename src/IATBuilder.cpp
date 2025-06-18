@@ -102,6 +102,40 @@ ImportDirLayout IATBuilder::getImportDirLayout() const {
   return layout;
 }
 
+const ImportFunction *
+IATBuilder::findImportFunction(const std::string_view library,
+                               const std::string_view function) const {
+
+  for (const auto &imp : imports) {
+    if (compareLibraryName(imp.Library, library)) {
+      for (const auto &func : imp.Functions) {
+        if (func.Name == function) {
+          return &func;
+        }
+      }
+    }
+  }
+
+  return nullptr;
+}
+
+ImportFunction *
+IATBuilder::findImportFunction(const std::string_view library,
+                               const std::string_view function) {
+
+  for (auto &imp : imports) {
+    if (compareLibraryName(imp.Library, library)) {
+      for (auto &func : imp.Functions) {
+        if (func.Name == function) {
+          return &func;
+        }
+      }
+    }
+  }
+
+  return nullptr;
+}
+
 void IATBuilder::addOriginalImports(const std::vector<std::uint8_t> &image) {
 
   const auto &importDir =
@@ -188,25 +222,6 @@ void IATBuilder::rebuildImportDir(std::vector<std::uint8_t> &image) {
   image.insert(image.end(), section.getData().begin(), section.getData().end());
 }
 
-void IATBuilder::updateHeaders(std::vector<std::uint8_t> &image) {
-  const auto ntHeaders = pe::getNtHeaders(image.data());
-  const auto optionalHeader = &ntHeaders->OptionalHeader64;
-
-  const std::uint32_t sectionHeaderOffset = [&] {
-    return reinterpret_cast<std::uint8_t *>(
-               ntHeaders->getSectionHeader(ntHeaders->getSectionCount() - 1)) -
-           image.data();
-  }();
-
-  optionalHeader->SizeOfHeaders = std::max<std::uint32_t>(
-      optionalHeader->SizeOfHeaders,
-      align<std::uint32_t>(sectionHeaderOffset + sizeof(IMAGE_SECTION_HEADER),
-                           optionalHeader->FileAlignment));
-
-  optionalHeader->SizeOfImage =
-      align<std::uint32_t>(image.size(), optionalHeader->SectionAlignment);
-}
-
 void IATBuilder::applyPatches(std::vector<std::uint8_t> &image,
                               std::uint32_t originalImportDirVA) {
 
@@ -221,6 +236,8 @@ void IATBuilder::applyPatches(std::vector<std::uint8_t> &image,
   section.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA |
                              IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ |
                              IMAGE_SCN_MEM_EXECUTE);
+
+  buildRedirectStubs(image, section);
 
   redirectOriginalIAT(image, section, originalImportDirVA);
 
@@ -244,25 +261,15 @@ void IATBuilder::applyPatches(std::vector<std::uint8_t> &image,
   image.insert(image.end(), section.getData().begin(), section.getData().end());
 }
 
-class RedirectStubInfo {
-public:
-  std::string Library;
-  std::string Function;
-  std::uint32_t RVA{0};
-};
-
-void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
-                                     SectionBuilder &scnBuilder,
-                                     std::uint32_t originalImportDirVA) const {
-
-  std::vector<RedirectStubInfo> redirectStubInfos;
+void IATBuilder::buildRedirectStubs(const std::vector<std::uint8_t> &image,
+                                    SectionBuilder &scnBuilder) {
 
   const auto ntHeaders = pe::getNtHeaders(image.data());
   const auto &newImportDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
-  LOG_INFO("generating IAT redirect stubs...");
+  LOG_INFO("building IAT redirect stubs...");
 
-  for (auto importDesc = reinterpret_cast<pe::ImageImportDescriptor *>(
+  for (auto importDesc = reinterpret_cast<const pe::ImageImportDescriptor *>(
            image.data() +
            *ntHeaders->rvaToFileOffset(newImportDir.VirtualAddress));
        importDesc->Name != 0; importDesc++) {
@@ -270,16 +277,17 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
     const auto libraryName = reinterpret_cast<const char *>(
         image.data() + *ntHeaders->rvaToFileOffset(importDesc->Name));
 
-    auto originalFirstThunk = reinterpret_cast<pe::ImageThunkData64 *>(
+    auto originalFirstThunk = reinterpret_cast<const pe::ImageThunkData64 *>(
         image.data() +
         *ntHeaders->rvaToFileOffset(importDesc->OriginalFirstThunk));
-    auto firstThunk = reinterpret_cast<pe::ImageThunkData64 *>(
+
+    auto firstThunk = reinterpret_cast<const pe::ImageThunkData64 *>(
         image.data() + *ntHeaders->rvaToFileOffset(importDesc->FirstThunk));
 
     for (; originalFirstThunk->u1.AddressOfData != 0;
-         originalFirstThunk++, firstThunk++) {
+         ++originalFirstThunk, ++firstThunk) {
 
-      const auto importByName = reinterpret_cast<pe::ImageImportByName *>(
+      const auto importByName = reinterpret_cast<const pe::ImageImportByName *>(
           image.data() +
           *ntHeaders->rvaToFileOffset(originalFirstThunk->u1.AddressOfData));
 
@@ -288,23 +296,31 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
 
       const auto stubRVA = scnBuilder.getRVA() + scnBuilder.getRawSize();
 
-      const std::uint32_t addressOfDataRVA = *ntHeaders->fileOffsetToRVA(
-          reinterpret_cast<std::uint8_t *>(&firstThunk->u1.AddressOfData) -
-          image.data());
+      const std::uint32_t addressOfDataRVA =
+          *ntHeaders->fileOffsetToRVA(reinterpret_cast<const std::uint8_t *>(
+                                          &firstThunk->u1.AddressOfData) -
+                                      image.data());
 
-      *reinterpret_cast<std::int32_t *>(&stub[2]) =
-          static_cast<std::int32_t>(addressOfDataRVA - (stubRVA + sizeof(stub)));
-
-      RedirectStubInfo redirectInfo;
-      redirectInfo.Library = libraryName;
-      redirectInfo.Function = importByName->Name;
-      redirectInfo.RVA = stubRVA;
+      *reinterpret_cast<std::int32_t *>(&stub[2]) = static_cast<std::int32_t>(
+          addressOfDataRVA - (stubRVA + sizeof(stub)));
 
       scnBuilder.append(stub);
 
-      redirectStubInfos.push_back(redirectInfo);
+      if (const auto importFunction =
+              findImportFunction(libraryName, importByName->Name)) {
+
+        importFunction->RedirectStubRVA = stubRVA;
+      }
     }
   }
+}
+
+void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
+                                     SectionBuilder &scnBuilder,
+                                     std::uint32_t originalImportDirVA) const {
+
+  const auto ntHeaders = pe::getNtHeaders(image.data());
+  const auto &newImportDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
   LOG_INFO("redirecting original IAT...");
 
@@ -327,15 +343,11 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
           image.data() +
           *ntHeaders->rvaToFileOffset(originalFirstThunk->u1.AddressOfData));
 
-      const auto it =
-          std::find_if(redirectStubInfos.begin(), redirectStubInfos.end(),
-                       [&](const RedirectStubInfo &info) {
-                         return compareLibraryName(info.Library, libraryName) &&
-                                info.Function == importByName->Name;
-                       });
+      if (const auto importFunction =
+              findImportFunction(libraryName, importByName->Name)) {
 
-      if (it != redirectStubInfos.end()) {
-        firstThunk->u1.Function = moduleInfo->ImageBase + it->RVA;
+        firstThunk->u1.Function =
+            moduleInfo->ImageBase + importFunction->RedirectStubRVA;
       }
     }
   }
@@ -401,5 +413,24 @@ bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) const {
   }
 
   return true;
+}
+
+void IATBuilder::updateHeaders(std::vector<std::uint8_t> &image) {
+  const auto ntHeaders = pe::getNtHeaders(image.data());
+  const auto optionalHeader = &ntHeaders->OptionalHeader64;
+
+  const std::uint32_t sectionHeaderOffset = [&] {
+    return reinterpret_cast<std::uint8_t *>(
+               ntHeaders->getSectionHeader(ntHeaders->getSectionCount() - 1)) -
+           image.data();
+  }();
+
+  optionalHeader->SizeOfHeaders = std::max<std::uint32_t>(
+      optionalHeader->SizeOfHeaders,
+      align<std::uint32_t>(sectionHeaderOffset + sizeof(IMAGE_SECTION_HEADER),
+                           optionalHeader->FileAlignment));
+
+  optionalHeader->SizeOfImage =
+      align<std::uint32_t>(image.size(), optionalHeader->SectionAlignment);
 }
 } // namespace dmadump

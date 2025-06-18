@@ -90,7 +90,7 @@ int dumpModule(VMM_HANDLE vmmHandle,
 
   LOG_INFO("looking for module {}...", moduleName);
 
-  const auto moduleInfo = dumper.getModuleInfo(moduleName.c_str());
+  const auto moduleInfo = dumper.getModuleInfo(moduleName);
   if (!moduleInfo) {
     LOG_ERROR("failed to find module info for {}.", moduleName);
     return 1;
