@@ -7,7 +7,7 @@
 #include <vmmdll.h>
 
 namespace dmadump {
-class ExportData {
+class ModuleExportInfo {
 public:
   std::string Name;
 
@@ -26,7 +26,7 @@ public:
 
   std::uint32_t ImageSize{0};
 
-  std::vector<ExportData> EAT;
+  std::vector<ModuleExportInfo> EAT;
 };
 
 class Dumper {

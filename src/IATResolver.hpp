@@ -8,7 +8,7 @@ class Dumper;
 class IATBuilder;
 class SectionBuilder;
 class ModuleInfo;
-class ExportData;
+class ModuleExportInfo;
 
 class ResolvedImport {
 public:
@@ -35,7 +35,7 @@ protected:
                   const std::uint8_t *searchEnd, std::uint32_t searchRVA,
                   std::uint32_t functionPtrRVA) ;
 
-  std::optional<std::pair<const ModuleInfo *, const ExportData *>>
+  std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
   findExportByVA(std::uint64_t va) const;
 
 protected:

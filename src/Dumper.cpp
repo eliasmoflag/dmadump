@@ -182,12 +182,12 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
       continue;
     }
 
-    ExportData exportData;
-    exportData.Name = exportName;
-    exportData.RVA = exportFunctionRVA;
-    exportData.Ordinal = exportOrdinal;
+    ModuleExportInfo exportInfo;
+    exportInfo.Name = exportName;
+    exportInfo.RVA = exportFunctionRVA;
+    exportInfo.Ordinal = exportOrdinal;
 
-    moduleInfo.EAT.push_back(exportData);
+    moduleInfo.EAT.push_back(exportInfo);
   }
 }
 } // namespace dmadump

@@ -33,13 +33,13 @@ std::vector<std::uint32_t> IATResolver::findDirectCalls(
   return result;
 }
 
-std::optional<std::pair<const ModuleInfo *, const ExportData *>>
+std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
 IATResolver::findExportByVA(std::uint64_t va) const {
 
   for (const auto &[moduleName, moduleInfo] : dumper.getModuleInfo()) {
-    for (const auto &exportData : moduleInfo.EAT) {
-      if (moduleInfo.ImageBase + exportData.RVA == va) {
-        return {{&moduleInfo, &exportData}};
+    for (const auto &exportInfo : moduleInfo.EAT) {
+      if (moduleInfo.ImageBase + exportInfo.RVA == va) {
+        return {{&moduleInfo, &exportInfo}};
       }
     }
   }
