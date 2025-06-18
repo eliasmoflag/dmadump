@@ -29,9 +29,15 @@ int main(const int argc, const char *const argv[]) {
 
   Logger::init();
 
+#ifdef _WIN32
+  if (!enablePrivilege("SeDebugPrivilege")) {
+    LOG_WARN("failed to enable SeDebugPrivilege.");
+  }
+#endif
+
   LOG_INFO("initializing vmm...");
 
-  std::vector vmmArgs{"-device", "fpga://algo=0"};
+  std::vector vmmArgs{"-device", cmdLine.DeviceType.c_str()};
   if (cmdLine.Debug) {
     vmmArgs.insert(vmmArgs.end(), {"-v", "-printf"});
   }

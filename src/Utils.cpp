@@ -3,6 +3,10 @@
 #include <thread>
 #include <filesystem>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 using namespace std::chrono_literals;
 
 namespace dmadump {
@@ -44,6 +48,36 @@ std::optional<std::uint32_t> findProcessByName(VMM_HANDLE vmmHandle,
 
   return processId;
 }
+
+#ifdef _WIN32
+bool enablePrivilege(const char *privilegeName) {
+
+  LUID luid;
+  if (!LookupPrivilegeValueA(nullptr, privilegeName, &luid)) {
+    return false;
+  }
+
+  TOKEN_PRIVILEGES tp{0};
+  tp.Privileges->Luid = luid;
+  tp.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
+  tp.PrivilegeCount = 1;
+
+  HANDLE tokenHandle{nullptr};
+  if (!OpenProcessToken(GetCurrentProcess(),
+                        TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tokenHandle)) {
+    return false;
+  }
+
+  if (!AdjustTokenPrivileges(tokenHandle, FALSE, &tp, sizeof(tp), nullptr,
+                             nullptr)) {
+    CloseHandle(tokenHandle);
+    return false;
+  }
+
+  CloseHandle(tokenHandle);
+  return true;
+}
+#endif
 
 void convertImageSectionsRawToVA(void *image) {
   const auto ntHeaders = pe::getNtHeaders(image);

@@ -24,6 +24,10 @@ createVmm(const std::vector<const char *> &argv);
 std::optional<std::uint32_t> findProcessByName(VMM_HANDLE vmmHandle,
                                                const char *processName);
 
+#ifdef _WIN32
+bool enablePrivilege(const char *privilegeName);
+#endif
+
 void convertImageSectionsRawToVA(void *image);
 
 pe::ImageSectionHeader *appendImageSectionHeader(void *image);

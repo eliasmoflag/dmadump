@@ -11,6 +11,7 @@ bool CmdLine::load(const int argc, const char *const argv[]) {
       ("p,process", "target process to dump", cxxopts::value<std::string>())
       ("m,module", "target module to dump", cxxopts::value<std::string>())
       ("iat", "type of IAT obfuscation to target", cxxopts::value<std::vector<std::string>>())
+      ("device", "memory acquisition method", cxxopts::value<std::string>())
       ("debug", "show debug output", cxxopts::value<bool>());
   // clang-format on
 
@@ -29,6 +30,9 @@ bool CmdLine::load(const int argc, const char *const argv[]) {
         IAT.insert(resolver);
       }
     }
+
+    DeviceType = options["device"].count() ? options["device"].as<std::string>()
+                                           : "fpga";
 
     Debug = options["debug"].count() != 0;
 

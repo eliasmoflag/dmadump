@@ -16,6 +16,7 @@ public:
   std::optional<std::string> ProcessName;
   std::string ModuleName;
   std::set<std::string> IAT;
+  std::string DeviceType;
   bool Debug{};
 };
 } // namespace dmadump
