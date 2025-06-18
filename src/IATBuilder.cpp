@@ -1,5 +1,6 @@
 #include "IATBuilder.hpp"
 #include "IATResolver.hpp"
+#include "Dumper.hpp"
 #include "Logging.hpp"
 #include "PE.hpp"
 #include "SectionBuilder.hpp"
@@ -8,8 +9,8 @@
 #include <numeric>
 
 namespace dmadump {
-IATBuilder::IATBuilder(Dumper &dumper, std::uint64_t allocationBase)
-    : dumper(dumper), allocationBase(allocationBase) {}
+IATBuilder::IATBuilder(Dumper &dumper, const ModuleInfo *moduleInfo)
+    : dumper(dumper), moduleInfo(moduleInfo) {}
 
 void IATBuilder::addImport(const std::string &libraryName,
                            const std::string &functionName) {
@@ -30,6 +31,10 @@ void IATBuilder::addImport(const std::string &libraryName,
 
   imports.push_back(library);
 }
+
+Dumper& IATBuilder::getDumper() const { return dumper; }
+
+const ModuleInfo *IATBuilder::getModuleInfo() const { return moduleInfo; }
 
 bool IATBuilder::rebuild(std::vector<std::uint8_t> &image) {
 
@@ -222,7 +227,7 @@ void IATBuilder::applyPatches(std::vector<std::uint8_t> &image,
   LOG_INFO("applying patches...");
 
   for (const auto &resolver : iatResolvers) {
-    resolver->applyPatches(*this, image.data(), section);
+    resolver->applyPatches(image.data(), section);
   }
 
   const auto sectionHeader = appendImageSectionHeader(image.data());
@@ -330,7 +335,7 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
                        });
 
       if (it != redirectStubInfos.end()) {
-        firstThunk->u1.Function = allocationBase + it->RVA;
+        firstThunk->u1.Function = moduleInfo->ImageBase + it->RVA;
       }
     }
   }

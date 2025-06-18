@@ -6,6 +6,7 @@
 
 namespace dmadump {
 class Dumper;
+class ModuleInfo;
 class IATResolver;
 class SectionBuilder;
 
@@ -34,7 +35,11 @@ public:
 
 class IATBuilder {
 public:
-  IATBuilder(Dumper &dumper, std::uint64_t allocationBase);
+  IATBuilder(Dumper &dumper, const ModuleInfo *moduleInfo);
+
+  Dumper &getDumper() const;
+
+  const ModuleInfo *getModuleInfo() const;
 
   void addImport(const std::string &libraryName,
                  const std::string &functionName);
@@ -44,7 +49,7 @@ public:
   template <typename T, typename... Args>
     requires std::is_base_of_v<IATResolver, T>
   inline IATBuilder &addResolver(Args &&...args) {
-    iatResolvers.push_back(std::make_unique<T>(std::forward<Args>(args)...));
+    iatResolvers.push_back(std::make_unique<T>(*this, std::forward<Args>(args)...));
     return *this;
   }
 
@@ -73,7 +78,7 @@ protected:
 protected:
   Dumper &dumper;
 
-  std::uint64_t allocationBase;
+  const ModuleInfo *moduleInfo;
 
   std::vector<std::unique_ptr<IATResolver>> iatResolvers;
 

@@ -23,7 +23,8 @@ int main(const int argc, const char *const argv[]) {
 
   CmdLine cmdLine;
   if (!cmdLine.load(argc, argv)) {
-    std::cout << "invalid arguments specified.\n\n" << cmdLine.help() << std::endl;
+    std::cout << "invalid arguments specified.\n\n"
+              << cmdLine.help() << std::endl;
     return 1;
   }
 
@@ -126,10 +127,10 @@ int dumpModule(VMM_HANDLE vmmHandle,
   optionalHeader->ImageBase = moduleInfo->ImageBase;
 
   if (!resolveIAT.empty()) {
-    IATBuilder iatBuilder(dumper, moduleInfo->ImageBase);
+    IATBuilder iatBuilder(dumper, moduleInfo);
 
     if (resolveIAT.contains("direct")) {
-      iatBuilder.addResolver<DirectIATResolver>(dumper, moduleInfo->ImageBase);
+      iatBuilder.addResolver<DirectIATResolver>();
     }
 
     if (!iatBuilder.rebuild(moduleData)) {

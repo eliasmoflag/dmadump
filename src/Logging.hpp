@@ -19,35 +19,34 @@ public:
 
   static void write(Level level, std::string_view buffer);
 
-  template <typename... arguments>
-  static inline void write(const std::string_view format, arguments &&...args) {
+  template <typename... Args>
+  static inline void write(const std::string_view format, Args &&...args) {
     write(std::vformat(format, std::make_format_args(args...)));
   }
 
-  template <typename... arguments>
+  template <typename... Args>
   static inline void write(const Level level, const std::string_view format,
-                    arguments &&...args) {
+                           Args &&...args) {
     write(level, std::vformat(format, std::make_format_args(args...)));
   }
 
-  template <typename... arguments>
-  static inline void info(const std::string_view format, arguments &&...args) {
+  template <typename... Args>
+  static inline void info(const std::string_view format, Args &&...args) {
     write(Level::Info, std::vformat(format, std::make_format_args(args...)));
   }
 
-  template <typename... arguments>
-  static inline void warn(const std::string_view format, arguments &&...args) {
+  template <typename... Args>
+  static inline void warn(const std::string_view format, Args &&...args) {
     write(Level::Warn, std::vformat(format, std::make_format_args(args...)));
   }
 
-  template <typename... arguments>
-  static inline void error(const std::string_view format, arguments &&...args) {
+  template <typename... Args>
+  static inline void error(const std::string_view format, Args &&...args) {
     write(Level::Error, std::vformat(format, std::make_format_args(args...)));
   }
 
-  template <typename... arguments>
-  static inline void success(const std::string_view format,
-                      arguments &&...args) {
+  template <typename... Args>
+  static inline void success(const std::string_view format, Args &&...args) {
     write(Level::Success, std::vformat(format, std::make_format_args(args...)));
   }
 };

@@ -6,8 +6,7 @@
 #include "PE.hpp"
 
 namespace dmadump {
-IATResolver::IATResolver(Dumper &dumper, std::uint64_t allocationBase)
-    : dumper(dumper), allocationBase(allocationBase) {}
+IATResolver::IATResolver(IATBuilder &iatBuilder) : iatBuilder(iatBuilder) {}
 
 std::vector<std::uint32_t> IATResolver::findDirectCalls(
     const std::uint8_t *searchBegin, const std::uint8_t *searchEnd,
@@ -36,7 +35,8 @@ std::vector<std::uint32_t> IATResolver::findDirectCalls(
 std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
 IATResolver::findExportByVA(std::uint64_t va) const {
 
-  for (const auto &[moduleName, moduleInfo] : dumper.getModuleInfo()) {
+  for (const auto &[moduleName, moduleInfo] :
+       iatBuilder.getDumper().getModuleInfo()) {
     for (const auto &exportInfo : moduleInfo.EAT) {
       if (moduleInfo.ImageBase + exportInfo.RVA == va) {
         return {{&moduleInfo, &exportInfo}};
@@ -47,9 +47,8 @@ IATResolver::findExportByVA(std::uint64_t va) const {
   return std::nullopt;
 }
 
-DirectIATResolver::DirectIATResolver(Dumper &dumper,
-                                     std::uint64_t allocationBase)
-    : IATResolver(dumper, allocationBase) {}
+DirectIATResolver::DirectIATResolver(IATBuilder &iatBuilder)
+    : IATResolver(iatBuilder) {}
 
 bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   const auto ntHeaders = pe::getNtHeaders(image.data());
@@ -118,8 +117,7 @@ std::vector<ResolvedImport> DirectIATResolver::getImports() const {
   return deps;
 }
 
-bool DirectIATResolver::applyPatches(IATBuilder &iatBuilder,
-                                     std::uint8_t *imageData,
+bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
                                      SectionBuilder &scnBuilder) {
 
   const auto ntHeaders = pe::getNtHeaders(imageData);

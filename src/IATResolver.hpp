@@ -18,7 +18,7 @@ public:
 
 class IATResolver {
 public:
-  IATResolver(Dumper &dumper, std::uint64_t allocationBase);
+  IATResolver(IATBuilder &iatBuilder);
 
   virtual ~IATResolver() = default;
 
@@ -26,7 +26,7 @@ public:
 
   virtual std::vector<ResolvedImport> getImports() const = 0;
 
-  virtual bool applyPatches(IATBuilder &iatBuilder, std::uint8_t *imageData,
+  virtual bool applyPatches(std::uint8_t *imageData,
                             SectionBuilder &scnBuilder) = 0;
 
 protected:
@@ -39,13 +39,12 @@ protected:
   findExportByVA(std::uint64_t va) const;
 
 protected:
-  Dumper &dumper;
-  std::uint64_t allocationBase;
+  IATBuilder &iatBuilder;
 };
 
 class DirectIATResolver : public IATResolver {
 public:
-  DirectIATResolver(Dumper &dumper, std::uint64_t allocationBase);
+  DirectIATResolver(IATBuilder &iatBuilder);
 
   ~DirectIATResolver() override = default;
 
@@ -53,7 +52,7 @@ public:
 
   std::vector<ResolvedImport> getImports() const override;
 
-  bool applyPatches(IATBuilder &iatBuilder, std::uint8_t *imageData,
+  bool applyPatches(std::uint8_t *imageData,
                     SectionBuilder &scnBuilder) override;
 
   const std::unordered_map<std::uint32_t, ResolvedImport> &
