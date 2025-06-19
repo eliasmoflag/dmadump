@@ -1,6 +1,6 @@
 #pragma once
-#include <string_view>
 #include <format>
+#include <string_view>
 
 namespace dmadump {
 #define LOG_WRITE(format, ...) Logger::write(format, ##__VA_ARGS__)

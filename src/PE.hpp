@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 
 namespace dmadump::pe {
@@ -109,8 +109,8 @@ struct ImageDataDirectory {
 
 struct ImageOptionalHeader32 {
   std::uint16_t Magic;
-  std::uint8_t  MajorLinkerVersion;
-  std::uint8_t  MinorLinkerVersion;
+  std::uint8_t MajorLinkerVersion;
+  std::uint8_t MinorLinkerVersion;
   std::uint32_t SizeOfCode;
   std::uint32_t SizeOfInitializedData;
   std::uint32_t SizeOfUninitializedData;
@@ -143,8 +143,8 @@ struct ImageOptionalHeader32 {
 
 struct ImageOptionalHeader64 {
   std::uint16_t Magic;
-  std::uint8_t  MajorLinkerVersion;
-  std::uint8_t  MinorLinkerVersion;
+  std::uint8_t MajorLinkerVersion;
+  std::uint8_t MinorLinkerVersion;
   std::uint32_t SizeOfCode;
   std::uint32_t SizeOfInitializedData;
   std::uint32_t SizeOfUninitializedData;
@@ -266,17 +266,17 @@ struct ImageImportByName {
 };
 
 struct ImageExportDirectory {
-    std::uint32_t   Characteristics;
-    std::uint32_t   TimeDateStamp;
-    std::uint16_t   MajorVersion;
-    std::uint16_t   MinorVersion;
-    std::uint32_t   Name;
-    std::uint32_t   Base;
-    std::uint32_t   NumberOfFunctions;
-    std::uint32_t   NumberOfNames;
-    std::uint32_t   AddressOfFunctions;
-    std::uint32_t   AddressOfNames;
-    std::uint32_t   AddressOfNameOrdinals;
+  std::uint32_t Characteristics;
+  std::uint32_t TimeDateStamp;
+  std::uint16_t MajorVersion;
+  std::uint16_t MinorVersion;
+  std::uint32_t Name;
+  std::uint32_t Base;
+  std::uint32_t NumberOfFunctions;
+  std::uint32_t NumberOfNames;
+  std::uint32_t AddressOfFunctions;
+  std::uint32_t AddressOfNames;
+  std::uint32_t AddressOfNameOrdinals;
 };
 
 ImageNtHeaders *getNtHeaders(void *imageData);

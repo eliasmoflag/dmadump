@@ -55,8 +55,7 @@ const ModuleInfo *Dumper::getModuleInfo(const std::string &moduleName) const {
 }
 
 bool Dumper::readMemory(const std::uint64_t va, void *buffer,
-                        const std::uint32_t size,
-                        std::uint32_t *bytesRead,
+                        const std::uint32_t size, std::uint32_t *bytesRead,
                         const bool forceUpdate) {
 
   if (va == 0 || size == 0) {

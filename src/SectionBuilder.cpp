@@ -26,9 +26,7 @@ const std::vector<std::uint8_t> &SectionBuilder::getData() const {
   return data;
 }
 
-std::vector<std::uint8_t> &SectionBuilder::getMutableData() {
-  return data;
-}
+std::vector<std::uint8_t> &SectionBuilder::getMutableData() { return data; }
 
 void SectionBuilder::append(const std::uint8_t *buffer, std::size_t size) {
   data.insert(data.end(), buffer, buffer + size);

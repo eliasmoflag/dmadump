@@ -1,6 +1,6 @@
 #include "IATBuilder.hpp"
-#include "IATResolver.hpp"
 #include "Dumper.hpp"
+#include "IATResolverBase.hpp"
 #include "Logging.hpp"
 #include "PE.hpp"
 #include "SectionBuilder.hpp"
@@ -32,7 +32,7 @@ void IATBuilder::addImport(const std::string &libraryName,
   imports.push_back(library);
 }
 
-Dumper& IATBuilder::getDumper() const { return dumper; }
+Dumper &IATBuilder::getDumper() const { return dumper; }
 
 const ModuleInfo *IATBuilder::getModuleInfo() const { return moduleInfo; }
 
@@ -83,7 +83,8 @@ ImportDirLayout IATBuilder::getImportDirLayout() const {
     libraryNameSize += imp.Library.size() + sizeof('\0');
 
     for (const auto &func : imp.Functions) {
-      functionNameSize += sizeof(std::uint16_t) + func.Name.size() + sizeof('\0');
+      functionNameSize +=
+          sizeof(std::uint16_t) + func.Name.size() + sizeof('\0');
     }
 
     thunkSize += sizeof(pe::ImageThunkData64) * (imp.Functions.size() + 1);
@@ -199,7 +200,8 @@ void IATBuilder::rebuildImportDir(std::vector<std::uint8_t> &image) {
                          align<std::uint32_t>(image.size(), sectionAlignment),
                          sectionAlignment, fileAlignment);
 
-  section.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE);
+  section.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA |
+                             IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE);
 
   constructImportDir(section);
   const auto importDirSize = section.getRawSize();

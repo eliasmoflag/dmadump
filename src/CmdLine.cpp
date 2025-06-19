@@ -43,7 +43,5 @@ bool CmdLine::load(const int argc, const char *const argv[]) {
   return true;
 }
 
-std::string CmdLine::help() const {
-  return Options::help();
-}
+std::string CmdLine::help() const { return Options::help(); }
 } // namespace dmadump

@@ -1,8 +1,8 @@
 #pragma once
-#include <string>
-#include <set>
-#include <optional>
 #include <cxxopts.hpp>
+#include <optional>
+#include <set>
+#include <string>
 
 namespace dmadump {
 class CmdLine : protected cxxopts::Options {

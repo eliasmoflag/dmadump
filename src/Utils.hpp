@@ -1,12 +1,12 @@
 #pragma once
-#include <string>
-#include <vector>
+#include "PE.hpp"
+#include <expected>
 #include <memory>
 #include <optional>
-#include <expected>
+#include <string>
 #include <type_traits>
+#include <vector>
 #include <vmmdll.h>
-#include "PE.hpp"
 
 namespace dmadump {
 template <typename T>

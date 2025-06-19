@@ -1,58 +1,17 @@
-#include "Logging.hpp"
+#include "DynamicIATResolver.hpp"
 #include "Dumper.hpp"
-#include "IATResolver.hpp"
 #include "IATBuilder.hpp"
+#include "Logging.hpp"
 #include "Utils.hpp"
 
 namespace dmadump {
-IATResolverBase::IATResolverBase(IATBuilder &iatBuilder) : iatBuilder(iatBuilder) {}
-
-std::vector<std::uint32_t> IATResolverBase::findDirectCalls(
-    const std::uint8_t *searchBegin, const std::uint8_t *searchEnd,
-    const std::uint32_t searchRVA, const std::uint32_t functionPtrRVA) {
-
-  std::vector<std::uint32_t> result;
-
-  for (auto it = searchBegin; it != searchEnd - 6; ++it) {
-
-    if (it[0] == 0xff && it[1] == 0x15) {
-      const std::int32_t ripRelTarget =
-          *reinterpret_cast<const std::int32_t *>(&it[2]);
-
-      const std::uint64_t targetRVA =
-          it - searchBegin + searchRVA + ripRelTarget + 6;
-
-      if (targetRVA == functionPtrRVA) {
-        result.push_back(it - searchBegin + searchRVA);
-      }
-    }
-  }
-
-  return result;
-}
-
-std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
-IATResolverBase::findExportByVA(std::uint64_t va) const {
-
-  for (const auto &[moduleName, moduleInfo] :
-       iatBuilder.getDumper().getModuleInfo()) {
-    for (const auto &exportInfo : moduleInfo.EAT) {
-      if (moduleInfo.ImageBase + exportInfo.RVA == va) {
-        return {{&moduleInfo, &exportInfo}};
-      }
-    }
-  }
-
-  return std::nullopt;
-}
-
-DirectIATResolver::DirectIATResolver(IATBuilder &iatBuilder,
-                                     const std::uint32_t requiredScnAttrs,
-                                     const std::uint32_t allowedScnAttrs)
+DynamicIATResolver::DynamicIATResolver(IATBuilder &iatBuilder,
+                                       const std::uint32_t requiredScnAttrs,
+                                       const std::uint32_t allowedScnAttrs)
     : IATResolverBase(iatBuilder), requiredScnAttrs(requiredScnAttrs),
       allowedScnAttrs(allowedScnAttrs) {}
 
-bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
+bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   const auto ntHeaders = pe::getNtHeaders(image.data());
   const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
@@ -95,7 +54,7 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
         resolvedImport.Library = moduleInfo->Name;
         resolvedImport.Function = exportData->Name;
 
-        directImportsByRVA.insert({rva, resolvedImport});
+        resolvedImportsByRVAs.insert({rva, resolvedImport});
 
         LOG_INFO("found import {}:{} at RVA 0x{:X}", moduleInfo->Name,
                  exportData->Name, rva);
@@ -103,23 +62,23 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
     }
   }
 
-  LOG_INFO("resolved {} direct imports", directImportsByRVA.size());
+  LOG_INFO("resolved {} direct imports", resolvedImportsByRVAs.size());
 
   return true;
 }
 
-std::vector<ResolvedImport> DirectIATResolver::getImports() const {
+std::vector<ResolvedImport> DynamicIATResolver::getImports() const {
   std::vector<ResolvedImport> deps;
 
-  for (const auto &[rva, imp] : directImportsByRVA) {
+  for (const auto &[rva, imp] : resolvedImportsByRVAs) {
     deps.push_back(imp);
   }
 
   return deps;
 }
 
-bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
-                                     SectionBuilder &scnBuilder) {
+bool DynamicIATResolver::applyPatches(std::uint8_t *imageData,
+                                      SectionBuilder &scnBuilder) {
 
   const auto ntHeaders = pe::getNtHeaders(imageData);
   const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
@@ -127,7 +86,7 @@ bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
   LOG_INFO("redirecting direct IAT to stubs...");
 
   std::size_t iatPatchCount = 0;
-  for (const auto &[functionPtrRVA, resolvedImport] : directImportsByRVA) {
+  for (const auto &[functionPtrRVA, resolvedImport] : resolvedImportsByRVAs) {
     if (const auto importFunction = iatBuilder.findImportFunction(
             resolvedImport.Library, resolvedImport.Function);
         importFunction && importFunction->RedirectStubRVA) {
@@ -156,22 +115,22 @@ bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
         reinterpret_cast<std::uint8_t *>(imageData) + section->VirtualAddress;
     const auto sectionEnd = sectionBegin + section->Misc.VirtualSize;
 
-    for (const auto &[functionPtrRVA, resolvedImport] : directImportsByRVA) {
+    for (const auto &[functionPtrRVA, resolvedImport] : resolvedImportsByRVAs) {
 
       for (const auto &callRVA :
            findDirectCalls(sectionBegin, sectionEnd, section->VirtualAddress,
                            functionPtrRVA)) {
 
-        // LOG_INFO("found direct call at RVA 0x{:X}", callRVA);
+        // LOG_INFO("found dynamic call at RVA 0x{:X}", callRVA);
 
         callSites[callRVA] = resolvedImport;
       }
     }
   }
 
-  LOG_INFO("found {} direct IAT calls.", callSites.size());
+  LOG_INFO("found {} dynamic IAT calls.", callSites.size());
 
-  LOG_INFO("patching direct IAT calls...");
+  LOG_INFO("patching dynamic IAT calls...");
 
   std::size_t callPatchCount = 0;
   for (const auto &[callSite, resolvedImport] : callSites) {
@@ -217,13 +176,13 @@ bool DirectIATResolver::applyPatches(std::uint8_t *imageData,
     }
   }
 
-  LOG_INFO("patched {} direct import calls", callPatchCount);
+  LOG_INFO("patched {} dynamic import calls", callPatchCount);
 
   return true;
 }
 
 const std::unordered_map<std::uint32_t, ResolvedImport> &
-DirectIATResolver::getDirectImports() const {
-  return directImportsByRVA;
+DynamicIATResolver::getResolvedImportsByRVAs() const {
+  return resolvedImportsByRVAs;
 }
 } // namespace dmadump

@@ -1,16 +1,15 @@
-#include <optional>
 #include <expected>
 #include <fstream>
+#include <iostream>
 #include <memory>
+#include <optional>
 
 #include "CmdLine.hpp"
 #include "Dumper.hpp"
+#include "DynamicIATResolver.hpp"
 #include "IATBuilder.hpp"
-#include "IATResolver.hpp"
 #include "Logging.hpp"
 #include "Utils.hpp"
-
-#include <iostream>
 
 using namespace dmadump;
 
@@ -129,8 +128,8 @@ int dumpModule(VMM_HANDLE vmmHandle,
   if (!resolveIAT.empty()) {
     IATBuilder iatBuilder(dumper, moduleInfo);
 
-    if (resolveIAT.contains("direct")) {
-      iatBuilder.addResolver<DirectIATResolver>();
+    if (resolveIAT.contains("dynamic")) {
+      iatBuilder.addResolver<DynamicIATResolver>();
     }
 
     if (!iatBuilder.rebuild(moduleData)) {

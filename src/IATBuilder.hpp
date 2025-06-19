@@ -1,8 +1,8 @@
 #pragma once
-#include <vector>
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_set>
+#include <vector>
 
 namespace dmadump {
 class Dumper;
@@ -57,7 +57,8 @@ public:
   template <typename T, typename... Args>
     requires std::is_base_of_v<IATResolverBase, T>
   inline IATBuilder &addResolver(Args &&...args) {
-    iatResolvers.push_back(std::make_unique<T>(*this, std::forward<Args>(args)...));
+    iatResolvers.push_back(
+        std::make_unique<T>(*this, std::forward<Args>(args)...));
     return *this;
   }
 

@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include "PE.hpp"
+#include <vector>
 
 namespace dmadump {
 class SectionBuilder {

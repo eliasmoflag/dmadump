@@ -1,7 +1,7 @@
 #include "Utils.hpp"
 #include <chrono>
-#include <thread>
 #include <filesystem>
+#include <thread>
 
 #ifdef _WIN32
 #include <Windows.h>
