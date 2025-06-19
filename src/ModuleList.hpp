@@ -1,33 +1,12 @@
 #pragma once
-#include <string>
-#include <memory>
-#include <vector>
+#include "ModuleInfo.hpp"
 #include <filesystem>
+#include <memory>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace dmadump {
-class ModuleExportInfo {
-public:
-  std::string Name;
-
-  std::uint32_t RVA{0};
-
-  std::uint16_t Ordinal{0};
-};
-
-class ModuleInfo {
-public:
-  std::string Name;
-
-  std::filesystem::path FilePath;
-
-  std::uint64_t ImageBase{0};
-
-  std::uint32_t ImageSize{0};
-
-  std::vector<ModuleExportInfo> EAT;
-};
-
 class ModuleList {
 public:
   ModuleList() = default;
@@ -42,6 +21,6 @@ public:
   const ModuleInfo *getModuleByAddress(std::uint64_t address) const;
 
 private:
-  std::unordered_map<std::string, std::unique_ptr<ModuleInfo>> moduleInfoList;
+  std::unordered_map<std::string, std::unique_ptr<ModuleInfo>> moduleMap;
 };
 } // namespace dmadump

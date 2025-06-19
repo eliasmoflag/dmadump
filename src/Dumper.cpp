@@ -23,12 +23,10 @@ bool Dumper::loadModuleInfo(const bool loadEAT) {
   for (std::uint32_t i = 0; i < moduleMap->cMap; i++) {
     const auto &moduleEntry = moduleMap->pMap[i];
 
-    ModuleInfo moduleInfo;
-    moduleInfo.Name = simplifyLibraryName(
-        std::filesystem::path(moduleEntry.uszText).filename().string());
-    moduleInfo.FilePath = moduleEntry.uszFullName;
-    moduleInfo.ImageBase = moduleEntry.vaBase;
-    moduleInfo.ImageSize = moduleEntry.cbImageSize;
+    ModuleInfo moduleInfo(
+        std::filesystem::path(moduleEntry.uszText).filename().string(),
+        moduleEntry.uszFullName, moduleEntry.vaBase, moduleEntry.cbImageSize,
+        {});
 
     if (loadEAT) {
       loadModuleEAT(moduleInfo);
@@ -42,7 +40,7 @@ bool Dumper::loadModuleInfo(const bool loadEAT) {
   return true;
 }
 
-const std::unique_ptr<ModuleList>& Dumper::getModuleList() const {
+const std::unique_ptr<ModuleList> &Dumper::getModuleList() const {
   return moduleList;
 }
 
@@ -123,7 +121,8 @@ bool Dumper::readString(const std::uint64_t va, std::string &readInto,
 void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
 
   std::uint8_t header[0x1000];
-  if (!readMemory(moduleInfo.ImageBase, &header, sizeof(header), nullptr)) {
+  if (!readMemory(moduleInfo.getImageBase(), &header, sizeof(header),
+                  nullptr)) {
     return;
   }
 
@@ -135,17 +134,17 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
   }
 
   pe::ImageExportDirectory exportDir = {0};
-  if (!readMemory(moduleInfo.ImageBase + exportDirEntry.VirtualAddress,
+  if (!readMemory(moduleInfo.getImageBase() + exportDirEntry.VirtualAddress,
                   &exportDir, sizeof(exportDir), nullptr)) {
     return;
   }
 
   const std::uint64_t exportAddressTable =
-      moduleInfo.ImageBase + exportDir.AddressOfFunctions;
+      moduleInfo.getImageBase() + exportDir.AddressOfFunctions;
   const std::uint64_t exportNameTable =
-      moduleInfo.ImageBase + exportDir.AddressOfNames;
+      moduleInfo.getImageBase() + exportDir.AddressOfNames;
   const std::uint64_t exportNameOrdinalTable =
-      moduleInfo.ImageBase + exportDir.AddressOfNameOrdinals;
+      moduleInfo.getImageBase() + exportDir.AddressOfNameOrdinals;
 
   for (std::size_t i = 0; i < exportDir.NumberOfNames; i++) {
 
@@ -169,16 +168,13 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
     }
 
     std::string exportName;
-    if (!readString(moduleInfo.ImageBase + exportNameRVA, exportName, 250)) {
+    if (!readString(moduleInfo.getImageBase() + exportNameRVA, exportName,
+                    250)) {
       continue;
     }
 
-    ModuleExportInfo exportInfo;
-    exportInfo.Name = exportName;
-    exportInfo.RVA = exportFunctionRVA;
-    exportInfo.Ordinal = exportOrdinal;
-
-    moduleInfo.EAT.push_back(exportInfo);
+    ModuleExportInfo exportInfo(exportName, exportOrdinal, exportFunctionRVA);
+    moduleInfo.addExport(exportInfo);
   }
 }
 } // namespace dmadump

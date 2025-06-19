@@ -26,15 +26,12 @@ public:
 
   virtual std::vector<ResolvedImport> getImports() const = 0;
 
-  virtual bool applyPatches(std::uint8_t *imageData,
+  virtual bool applyPatches(std::vector<std::uint8_t> &image,
                             SectionBuilder &scnBuilder) = 0;
 
 protected:
   std::uint64_t getLowestModuleStartAddress() const;
   std::uint64_t getHighestModuleEndAddress() const;
-
-  std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
-  findExportByVA(std::uint64_t va) const;
 
   static std::vector<std::uint32_t>
   findDirectCalls(const std::uint8_t *searchBegin,

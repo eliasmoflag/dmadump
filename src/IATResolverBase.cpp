@@ -1,8 +1,8 @@
 #include "IATResolverBase.hpp"
 #include "Dumper.hpp"
 #include "IATBuilder.hpp"
-#include <ranges>
 #include <limits>
+#include <ranges>
 
 namespace dmadump {
 IATResolverBase::IATResolverBase(IATBuilder &iatBuilder)
@@ -13,7 +13,7 @@ std::uint64_t IATResolverBase::getLowestModuleStartAddress() const {
 
   for (const auto &mod : std::views::values(
            iatBuilder.getDumper().getModuleList()->getModuleMap())) {
-    result = std::min(result, mod->ImageBase);
+    result = std::min(result, mod->getImageBase());
   }
 
   return result;
@@ -24,26 +24,10 @@ std::uint64_t IATResolverBase::getHighestModuleEndAddress() const {
 
   for (const auto &mod : std::views::values(
            iatBuilder.getDumper().getModuleList()->getModuleMap())) {
-    result = std::max(result, mod->ImageBase + mod->ImageSize);
+    result = std::max(result, mod->getImageBase() + mod->getImageSize());
   }
 
   return result;
-}
-
-std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
-IATResolverBase::findExportByVA(std::uint64_t va) const {
-
-  if (const auto moduleInfo =
-          iatBuilder.getDumper().getModuleList()->getModuleByAddress(va)) {
-
-    for (const auto &exportInfo : moduleInfo->EAT) {
-      if (moduleInfo->ImageBase + exportInfo.RVA == va) {
-        return {{moduleInfo, &exportInfo}};
-      }
-    }
-  }
-
-  return std::nullopt;
 }
 
 std::vector<std::uint32_t> IATResolverBase::findDirectCalls(

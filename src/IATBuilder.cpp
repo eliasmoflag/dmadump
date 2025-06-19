@@ -246,7 +246,7 @@ void IATBuilder::applyPatches(std::vector<std::uint8_t> &image,
   LOG_INFO("applying patches...");
 
   for (const auto &resolver : iatResolvers) {
-    resolver->applyPatches(image.data(), section);
+    resolver->applyPatches(image, section);
   }
 
   const auto sectionHeader = appendImageSectionHeader(image.data());
@@ -349,7 +349,7 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
               findImportFunction(libraryName, importByName->Name)) {
 
         firstThunk->u1.Function =
-            moduleInfo->ImageBase + importFunction->RedirectStubRVA;
+            moduleInfo->getImageBase() + importFunction->RedirectStubRVA;
       }
     }
   }

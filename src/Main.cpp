@@ -95,16 +95,16 @@ int dumpModule(VMM_HANDLE vmmHandle,
     return 1;
   }
 
-  LOG_INFO("found {} at 0x{:X} (size: {}).", moduleName, moduleInfo->ImageBase,
-           moduleInfo->ImageSize);
+  LOG_INFO("found {} at 0x{:X} (size: {}).", moduleName,
+           moduleInfo->getImageBase(), moduleInfo->getImageSize());
 
   LOG_INFO("reading image data...");
 
-  std::vector<std::uint8_t> moduleData(moduleInfo->ImageSize);
+  std::vector<std::uint8_t> moduleData(moduleInfo->getImageSize());
 
   std::uint32_t bytesRead = 0;
-  dumper.readMemory(moduleInfo->ImageBase, moduleData.data(), moduleData.size(),
-                    &bytesRead);
+  dumper.readMemory(moduleInfo->getImageBase(), moduleData.data(),
+                    moduleData.size(), &bytesRead);
 
   moduleData.resize(bytesRead);
 
@@ -113,9 +113,9 @@ int dumpModule(VMM_HANDLE vmmHandle,
     return 1;
   }
 
-  if (bytesRead != moduleInfo->ImageSize) {
+  if (bytesRead != moduleInfo->getImageSize()) {
     LOG_WARN("not all module bytes were read ({}/{}).", bytesRead,
-             moduleInfo->ImageSize);
+             moduleInfo->getImageSize());
   }
 
   LOG_INFO("fixing image sections...");
@@ -123,7 +123,7 @@ int dumpModule(VMM_HANDLE vmmHandle,
   convertImageSectionsRawToVA(moduleData.data());
 
   const auto optionalHeader = pe::getOptionalHeader64(moduleData.data());
-  optionalHeader->ImageBase = moduleInfo->ImageBase;
+  optionalHeader->ImageBase = moduleInfo->getImageBase();
 
   if (!resolveIAT.empty()) {
     IATBuilder iatBuilder(dumper, moduleInfo);

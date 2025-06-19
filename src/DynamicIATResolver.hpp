@@ -22,7 +22,7 @@ public:
 
   std::vector<ResolvedImport> getImports() const override;
 
-  bool applyPatches(std::uint8_t *imageData,
+  bool applyPatches(std::vector<std::uint8_t> &image,
                     SectionBuilder &scnBuilder) override;
 
   const std::unordered_map<std::uint32_t, ResolvedImport> &
