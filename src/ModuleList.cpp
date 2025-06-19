@@ -19,6 +19,11 @@ void ModuleList::addModule(const ModuleInfo &moduleInfo) {
                              std::make_unique<ModuleInfo>(moduleInfo));
 }
 
+const std::unordered_map<std::string, std::unique_ptr<ModuleInfo>> &
+ModuleList::getModuleMap() const {
+  return moduleInfoList;
+}
+
 const ModuleInfo *
 ModuleList::getModuleByName(const std::string_view moduleName) const {
 

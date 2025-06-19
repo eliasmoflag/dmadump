@@ -5,7 +5,6 @@
 #include <vector>
 
 namespace dmadump {
-class Dumper;
 class IATBuilder;
 class SectionBuilder;
 class ModuleInfo;
@@ -31,13 +30,16 @@ public:
                             SectionBuilder &scnBuilder) = 0;
 
 protected:
+  std::uint64_t getLowestModuleStartAddress() const;
+  std::uint64_t getHighestModuleEndAddress() const;
+
+  std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
+  findExportByVA(std::uint64_t va) const;
+
   static std::vector<std::uint32_t>
   findDirectCalls(const std::uint8_t *searchBegin,
                   const std::uint8_t *searchEnd, std::uint32_t searchRVA,
                   std::uint32_t functionPtrRVA);
-
-  std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
-  findExportByVA(std::uint64_t va) const;
 
 protected:
   IATBuilder &iatBuilder;

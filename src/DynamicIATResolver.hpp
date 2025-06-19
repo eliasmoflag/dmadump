@@ -10,7 +10,7 @@ public:
       IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;
 
   static constexpr std::uint32_t DefaultAllowedScnAttrs =
-      std::numeric_limits<std::uint32_t>::max() & ~IMAGE_SCN_MEM_EXECUTE;
+      ~IMAGE_SCN_MEM_EXECUTE;
 
   DynamicIATResolver(IATBuilder &iatBuilder,
                      std::uint32_t requiredScnAttrs = DefaultRequiredScnAttrs,

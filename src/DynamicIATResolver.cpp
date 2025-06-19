@@ -15,6 +15,9 @@ bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   const auto ntHeaders = pe::getNtHeaders(image.data());
   const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
+  const auto lowModStartAddr = getLowestModuleStartAddress();
+  const auto highModEndAddr = getHighestModuleEndAddress();
+
   for (std::uint16_t i = 0; i < ntHeaders->getSectionCount(); ++i) {
     const auto section = ntHeaders->getSectionHeader(i);
 
@@ -39,7 +42,6 @@ bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {
         section->Misc.VirtualSize % 8);
 
     for (auto it = sectionBegin; it != sectionEnd; ++it) {
-
       const auto rva = static_cast<std::uint32_t>(
           reinterpret_cast<const std::uint8_t *>(it) - image.data());
 
@@ -47,7 +49,12 @@ bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {
         continue;
       }
 
-      if (const auto match = findExportByVA(*it)) {
+      const std::uint64_t candidate = *it;
+      if (candidate < lowModStartAddr || candidate >= highModEndAddr) {
+        continue;
+      }
+
+      if (const auto match = findExportByVA(candidate)) {
         const auto &[moduleInfo, exportData] = *match;
 
         ResolvedImport resolvedImport;
