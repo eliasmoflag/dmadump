@@ -3,12 +3,11 @@
 #include "IATResolver.hpp"
 #include "IATBuilder.hpp"
 #include "Utils.hpp"
-#include "PE.hpp"
 
 namespace dmadump {
-IATResolver::IATResolver(IATBuilder &iatBuilder) : iatBuilder(iatBuilder) {}
+IATResolverBase::IATResolverBase(IATBuilder &iatBuilder) : iatBuilder(iatBuilder) {}
 
-std::vector<std::uint32_t> IATResolver::findDirectCalls(
+std::vector<std::uint32_t> IATResolverBase::findDirectCalls(
     const std::uint8_t *searchBegin, const std::uint8_t *searchEnd,
     const std::uint32_t searchRVA, const std::uint32_t functionPtrRVA) {
 
@@ -33,7 +32,7 @@ std::vector<std::uint32_t> IATResolver::findDirectCalls(
 }
 
 std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
-IATResolver::findExportByVA(std::uint64_t va) const {
+IATResolverBase::findExportByVA(std::uint64_t va) const {
 
   for (const auto &[moduleName, moduleInfo] :
        iatBuilder.getDumper().getModuleInfo()) {
@@ -47,8 +46,11 @@ IATResolver::findExportByVA(std::uint64_t va) const {
   return std::nullopt;
 }
 
-DirectIATResolver::DirectIATResolver(IATBuilder &iatBuilder)
-    : IATResolver(iatBuilder) {}
+DirectIATResolver::DirectIATResolver(IATBuilder &iatBuilder,
+                                     const std::uint32_t requiredScnAttrs,
+                                     const std::uint32_t allowedScnAttrs)
+    : IATResolverBase(iatBuilder), requiredScnAttrs(requiredScnAttrs),
+      allowedScnAttrs(allowedScnAttrs) {}
 
 bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   const auto ntHeaders = pe::getNtHeaders(image.data());
@@ -63,9 +65,8 @@ bool DirectIATResolver::resolve(const std::vector<std::uint8_t> &image) {
     }
 
     const bool validCharacteristics =
-        (section->Characteristics & IMAGE_SCN_MEM_READ) != 0 &&
-        (section->Characteristics & IMAGE_SCN_MEM_WRITE) != 0 &&
-        (section->Characteristics & IMAGE_SCN_MEM_EXECUTE) == 0;
+        (section->Characteristics & requiredScnAttrs) == requiredScnAttrs &&
+        (section->Characteristics & ~allowedScnAttrs) == 0;
 
     if (!validCharacteristics) {
       continue;

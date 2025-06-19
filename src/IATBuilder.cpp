@@ -15,9 +15,9 @@ IATBuilder::IATBuilder(Dumper &dumper, const ModuleInfo *moduleInfo)
 void IATBuilder::addImport(const std::string &libraryName,
                            const std::string &functionName) {
 
-  for (auto &dep : imports) {
-    if (compareLibraryName(dep.Library, libraryName)) {
-      dep.addFunction(functionName);
+  for (auto &imp : imports) {
+    if (compareLibraryName(imp.Library, libraryName)) {
+      imp.addFunction(functionName);
       return;
     }
   }
@@ -361,7 +361,9 @@ bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) const {
       sectionBuilder.getRVA() + sectionBuilder.getRawSize();
 
   sectionBuilder.getMutableData().resize(
-      sectionBuilder.getRawSize() + importDirLayout.Size, 0);
+      static_cast<std::size_t>(sectionBuilder.getRawSize() +
+                               importDirLayout.Size),
+      0);
 
   std::uint8_t *importDirData = sectionBuilder.getMutableData().data() +
                                 (importDirRVA - sectionBuilder.getRVA());
