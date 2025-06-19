@@ -125,7 +125,7 @@ bool compareLibraryName(const std::string_view lhs,
                  rhs.substr(0, rhs.find_last_of('.')));
 }
 
-std::string simplifyLibraryName(const std::string &moduleName) {
+std::string simplifyLibraryName(const std::string_view moduleName) {
 
   std::filesystem::path path(moduleName);
   path.replace_extension("");

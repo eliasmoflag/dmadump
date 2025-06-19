@@ -38,5 +38,5 @@ bool iequals(std::string_view lhs, std::string_view rhs);
 
 bool compareLibraryName(std::string_view lhs, std::string_view rhs);
 
-std::string simplifyLibraryName(const std::string &moduleName);
+std::string simplifyLibraryName(std::string_view moduleName);
 } // namespace dmadump

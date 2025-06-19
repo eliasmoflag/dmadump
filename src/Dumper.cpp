@@ -6,7 +6,9 @@
 
 namespace dmadump {
 Dumper::Dumper(VMM_HANDLE vmmHandle, const std::uint32_t processId)
-    : vmmHandle(vmmHandle), processId(processId) {}
+    : vmmHandle(vmmHandle), processId(processId) {
+  moduleList = std::make_unique<ModuleList>();
+}
 
 Dumper::~Dumper() { VMMDLL_Close(vmmHandle); }
 
@@ -32,7 +34,7 @@ bool Dumper::loadModuleInfo(const bool loadEAT) {
       loadModuleEAT(moduleInfo);
     }
 
-    imageInfo.insert({moduleInfo.Name, std::move(moduleInfo)});
+    moduleList->addModule(std::move(moduleInfo));
   }
 
   VMMDLL_MemFree(moduleMap);
@@ -40,18 +42,8 @@ bool Dumper::loadModuleInfo(const bool loadEAT) {
   return true;
 }
 
-const std::unordered_map<std::string, ModuleInfo> &
-Dumper::getModuleInfo() const {
-  return imageInfo;
-}
-
-const ModuleInfo *Dumper::getModuleInfo(const std::string &moduleName) const {
-  const auto found = imageInfo.find(simplifyLibraryName(moduleName));
-  if (found != imageInfo.end()) {
-    return &found->second;
-  }
-
-  return nullptr;
+const std::unique_ptr<ModuleList>& Dumper::getModuleList() const {
+  return moduleList;
 }
 
 bool Dumper::readMemory(const std::uint64_t va, void *buffer,

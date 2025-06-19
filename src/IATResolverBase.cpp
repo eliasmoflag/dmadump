@@ -33,11 +33,12 @@ std::vector<std::uint32_t> IATResolverBase::findDirectCalls(
 std::optional<std::pair<const ModuleInfo *, const ModuleExportInfo *>>
 IATResolverBase::findExportByVA(std::uint64_t va) const {
 
-  for (const auto &[moduleName, moduleInfo] :
-       iatBuilder.getDumper().getModuleInfo()) {
-    for (const auto &exportInfo : moduleInfo.EAT) {
-      if (moduleInfo.ImageBase + exportInfo.RVA == va) {
-        return {{&moduleInfo, &exportInfo}};
+  if (const auto moduleInfo =
+          iatBuilder.getDumper().getModuleList()->getModuleByAddress(va)) {
+
+    for (const auto &exportInfo : moduleInfo->EAT) {
+      if (moduleInfo->ImageBase + exportInfo.RVA == va) {
+        return {{moduleInfo, &exportInfo}};
       }
     }
   }

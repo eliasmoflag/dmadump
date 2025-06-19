@@ -5,30 +5,9 @@
 #include <unordered_map>
 #include <vector>
 #include <vmmdll.h>
+#include "ModuleList.hpp"
 
 namespace dmadump {
-class ModuleExportInfo {
-public:
-  std::string Name;
-
-  std::uint32_t RVA{0};
-
-  std::uint16_t Ordinal{0};
-};
-
-class ModuleInfo {
-public:
-  std::string Name;
-
-  std::filesystem::path FilePath;
-
-  std::uint64_t ImageBase{0};
-
-  std::uint32_t ImageSize{0};
-
-  std::vector<ModuleExportInfo> EAT;
-};
-
 class Dumper {
 public:
   Dumper(VMM_HANDLE vmmHandle, std::uint32_t processId);
@@ -37,9 +16,7 @@ public:
 
   bool loadModuleInfo(bool loadEAT);
 
-  const std::unordered_map<std::string, ModuleInfo> &getModuleInfo() const;
-
-  const ModuleInfo *getModuleInfo(const std::string &moduleName) const;
+  const std::unique_ptr<ModuleList> &getModuleList() const;
 
   bool readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
                   std::uint32_t *bytesRead = nullptr, bool forceUpdate = false);
@@ -55,7 +32,7 @@ protected:
 
   std::uint32_t processId;
 
-  std::unordered_map<std::string, ModuleInfo> imageInfo;
+  std::unique_ptr<ModuleList> moduleList;
 
   std::unordered_map<std::uint64_t, std::unique_ptr<std::uint8_t[]>>
       memoryCache;
