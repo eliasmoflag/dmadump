@@ -43,10 +43,11 @@ bool VMMDumper::loadModuleInfo() {
 
 ModuleList *VMMDumper::getModuleList() const { return moduleList.get(); }
 
-bool VMMDumper::readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
+bool VMMDumper::readMemory(const std::uint64_t va, void *buffer,
+                           const std::uint32_t size,
                            std::uint32_t *bytesRead) {
   return VMMDLL_MemReadEx(vmmHandle, processID, va,
-                          reinterpret_cast<PBYTE>(buffer), size,
-                          reinterpret_cast<PDWORD>(bytesRead), 0) != FALSE;
+                          static_cast<PBYTE>(buffer), size,
+                          reinterpret_cast<PDWORD>(bytesRead), 0);
 }
 } // namespace dmadump

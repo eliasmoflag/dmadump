@@ -323,7 +323,6 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
                                      std::uint32_t originalImportDirVA) const {
 
   const auto ntHeaders = pe::getNtHeaders(image.data());
-  const auto &newImportDir = ntHeaders->OptionalHeader64.ImportDirectory;
 
   LOG_INFO("redirecting original IAT...");
 

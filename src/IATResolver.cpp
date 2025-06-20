@@ -12,8 +12,9 @@ IATResolver::IATResolver(IATBuilder &iatBuilder)
 std::uint64_t IATResolver::getLowestModuleStartAddress() const {
   std::uint64_t result = std::numeric_limits<std::uint64_t>::max();
 
-  for (const auto &mod : std::views::values(
-           iatBuilder.getDumper().getModuleList()->getModuleMap())) {
+  for (const auto &moduleList = *iatBuilder.getDumper().getModuleList();
+       const auto &mod : std::views::values(
+           moduleList.getModuleMap())) {
     result = std::min(result, mod->getImageBase());
   }
 
@@ -23,8 +24,9 @@ std::uint64_t IATResolver::getLowestModuleStartAddress() const {
 std::uint64_t IATResolver::getHighestModuleEndAddress() const {
   std::uint64_t result = std::numeric_limits<std::uint64_t>::min();
 
-  for (const auto &mod : std::views::values(
-           iatBuilder.getDumper().getModuleList()->getModuleMap())) {
+  for (const auto &moduleList = *iatBuilder.getDumper().getModuleList();
+       const auto &mod : std::views::values(
+           moduleList.getModuleMap())) {
     result = std::max(result, mod->getImageBase() + mod->getImageSize());
   }
 

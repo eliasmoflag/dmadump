@@ -94,11 +94,8 @@ protected:
 
 protected:
   Dumper &dumper;
-
   const ModuleInfo *moduleInfo;
-
   std::vector<std::unique_ptr<IATResolver>> iatResolvers;
-
   std::vector<ImportLibrary> imports;
 };
 } // namespace dmadump

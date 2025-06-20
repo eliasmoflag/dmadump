@@ -85,7 +85,7 @@ const std::vector<ResolvedImport> &DynamicIATResolver::getImports() const {
 }
 
 bool DynamicIATResolver::applyPatches(std::vector<std::uint8_t> &image,
-                                      SectionBuilder &scnBuilder) {
+                                      SectionBuilder &codeScn) {
 
   const auto ntHeaders = pe::getNtHeaders(image.data());
   const auto &importDir = ntHeaders->OptionalHeader64.ImportDirectory;

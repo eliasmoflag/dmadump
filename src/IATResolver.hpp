@@ -23,7 +23,7 @@ public:
   virtual const std::vector<ResolvedImport> &getImports() const = 0;
 
   virtual bool applyPatches(std::vector<std::uint8_t> &image,
-                            SectionBuilder &scnBuilder) = 0;
+                            SectionBuilder &codeScn) = 0;
 
 protected:
   std::uint64_t getLowestModuleStartAddress() const;
