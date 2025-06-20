@@ -14,23 +14,16 @@ IATBuilder::IATBuilder(Dumper &dumper, const ModuleInfo *moduleInfo)
     : dumper(dumper), moduleInfo(moduleInfo) {}
 
 void IATBuilder::addImport(const std::string &libraryName,
-                           const std::string &functionName) {
+                           const ImportFunction &function) {
 
   for (auto &imp : imports) {
-    if (compareLibraryName(imp.Library, libraryName)) {
-      imp.addFunction(functionName);
+    if (compareLibraryName(imp.getName(), libraryName)) {
+      imp.addFunction(function);
       return;
     }
   }
 
-  ImportFunction function;
-  function.Name = functionName;
-
-  ImportLibrary library;
-  library.Library = libraryName;
-  library.Functions = {function};
-
-  imports.push_back(library);
+  imports.emplace_back(libraryName, std::vector{function});
 }
 
 Dumper &IATBuilder::getDumper() const { return dumper; }
@@ -55,19 +48,93 @@ bool IATBuilder::rebuild(std::vector<std::uint8_t> &image) {
   return true;
 }
 
-void ImportLibrary::addFunction(const std::string &functionName) {
-  for (const auto &func : Functions) {
-    if (func.Name == functionName) {
+IATBuilder::ImportFunction::ImportFunction(
+    std::variant<std::string, std::uint16_t> name)
+    : name(std::move(name)), redirectStubRVA(std::nullopt) {}
+
+IATBuilder::ImportFunction
+IATBuilder::ImportFunction::fromName(std::string name) {
+  return ImportFunction(std::move(name));
+}
+
+IATBuilder::ImportFunction
+IATBuilder::ImportFunction::fromOrdinal(const std::uint16_t ordinal) {
+  return ImportFunction(ordinal);
+}
+
+const std::variant<std::string, std::uint16_t> &
+IATBuilder::ImportFunction::getName() const {
+  return name;
+}
+
+const std::optional<std::uint32_t> &
+IATBuilder::ImportFunction::getRedirectStub() const {
+  return redirectStubRVA;
+}
+
+void IATBuilder::ImportFunction::setRedirectStub(const std::uint32_t &rva) {
+  redirectStubRVA = rva;
+}
+
+IATBuilder::ImportLibrary::ImportLibrary(std::string library,
+                                         std::vector<ImportFunction> functions)
+    : library(std::move(library)), functions(std::move(functions)) {}
+
+const std::string &IATBuilder::ImportLibrary::getName() const {
+  return library;
+}
+
+std::vector<IATBuilder::ImportFunction> &
+IATBuilder::ImportLibrary::getFunctions() {
+  return functions;
+}
+
+const std::vector<IATBuilder::ImportFunction> &
+IATBuilder::ImportLibrary::getFunctions() const {
+  return functions;
+}
+
+const IATBuilder::ImportFunction *
+IATBuilder::ImportLibrary::getFunctionByName(std::string_view name) const {
+  for (const auto &func : functions) {
+    if (func.getName().index() == 0 && std::get<0>(func.getName()) == name) {
+      return &func;
+    }
+  }
+  return nullptr;
+}
+
+const IATBuilder::ImportFunction *
+IATBuilder::ImportLibrary::getFunctionByOrdinal(std::uint16_t ordinal) const {
+  for (const auto &func : functions) {
+    if (func.getName().index() == 1 && std::get<1>(func.getName()) == ordinal) {
+      return &func;
+    }
+  }
+  return nullptr;
+}
+
+const IATBuilder::ImportFunction *IATBuilder::ImportLibrary::getFunctionByName(
+    const std::variant<std::string, std::uint16_t> &name) const {
+  for (const auto &func : functions) {
+    if (func.getName() == name) {
+      return &func;
+    }
+  }
+  return nullptr;
+}
+
+void IATBuilder::ImportLibrary::addFunction(const ImportFunction &function) {
+  for (const auto &func : functions) {
+    if (func.getName() == function.getName()) {
       return;
     }
   }
 
-  ImportFunction function;
-  function.Name = functionName;
-  Functions.push_back(function);
+  functions.emplace_back(function);
 }
 
-const std::vector<ImportLibrary> &IATBuilder::getImports() const {
+const std::vector<IATBuilder::ImportLibrary> &IATBuilder::getImports() const {
   return imports;
 }
 
@@ -81,15 +148,17 @@ ImportDirLayout IATBuilder::getImportDirLayout() const {
 
   std::size_t functionCount = 0;
   for (const auto &imp : imports) {
-    libraryNameSize += imp.Library.size() + sizeof('\0');
+    libraryNameSize += imp.getName().size() + sizeof('\0');
 
-    for (const auto &func : imp.Functions) {
-      functionNameSize +=
-          sizeof(std::uint16_t) + func.Name.size() + sizeof('\0');
+    for (const auto &func : imp.getFunctions()) {
+      if (func.getName().index() == 0) {
+        functionNameSize += sizeof(std::uint16_t) +
+                            std::get<0>(func.getName()).size() + sizeof('\0');
+      }
     }
 
-    thunkSize += sizeof(pe::ImageThunkData64) * (imp.Functions.size() + 1);
-    functionCount += imp.Functions.size();
+    thunkSize += sizeof(pe::ImageThunkData64) * (imp.getFunctions().size() + 1);
+    functionCount += imp.getFunctions().size();
   }
 
   descriptorSize = sizeof(pe::ImageImportDescriptor) * (imports.size() + 1);
@@ -104,14 +173,14 @@ ImportDirLayout IATBuilder::getImportDirLayout() const {
   return layout;
 }
 
-const ImportFunction *
-IATBuilder::findImportFunction(const std::string_view library,
-                               const std::string_view function) const {
+const IATBuilder::ImportFunction *IATBuilder::findImportFunction(
+    const std::string_view library,
+    const std::variant<std::string, std::uint16_t> &function) const {
 
   for (const auto &imp : imports) {
-    if (compareLibraryName(imp.Library, library)) {
-      for (const auto &func : imp.Functions) {
-        if (func.Name == function) {
+    if (compareLibraryName(imp.getName(), library)) {
+      for (const auto &func : imp.getFunctions()) {
+        if (func.getName() == function) {
           return &func;
         }
       }
@@ -121,14 +190,14 @@ IATBuilder::findImportFunction(const std::string_view library,
   return nullptr;
 }
 
-ImportFunction *
-IATBuilder::findImportFunction(const std::string_view library,
-                               const std::string_view function) {
+IATBuilder::ImportFunction *IATBuilder::findImportFunction(
+    const std::string_view library,
+    const std::variant<std::string, std::uint16_t> &function) {
 
   for (auto &imp : imports) {
-    if (compareLibraryName(imp.Library, library)) {
-      for (auto &func : imp.Functions) {
-        if (func.Name == function) {
+    if (compareLibraryName(imp.getName(), library)) {
+      for (auto &func : imp.getFunctions()) {
+        if (func.getName() == function) {
           return &func;
         }
       }
@@ -162,10 +231,16 @@ void IATBuilder::addOriginalImports(const std::vector<std::uint8_t> &image) {
 
     while (originalFirstThunk->u1.AddressOfData != 0) {
 
-      const auto importByName = reinterpret_cast<const pe::ImageImportByName *>(
-          image.data() + originalFirstThunk->u1.AddressOfData);
+      if (IMAGE_SNAP_BY_ORDINAL64(originalFirstThunk->u1.Ordinal)) {
+        addImport(libraryName, ImportFunction::fromOrdinal(IMAGE_ORDINAL64(
+                                   originalFirstThunk->u1.Ordinal)));
+      } else {
+        const auto importByName =
+            reinterpret_cast<const pe::ImageImportByName *>(
+                image.data() + originalFirstThunk->u1.AddressOfData);
 
-      addImport(libraryName, importByName->Name);
+        addImport(libraryName, ImportFunction::fromName(importByName->Name));
+      }
 
       ++originalFirstThunk;
       ++firstThunk;
@@ -181,7 +256,7 @@ void IATBuilder::resolveImports(const std::vector<std::uint8_t> &image) {
   for (const auto &resolver : iatResolvers) {
     if (resolver->resolve(image)) {
       for (const auto &[library, function] : resolver->getImports()) {
-        addImport(library, function);
+        addImport(library, ImportFunction::fromName(function));
       }
     }
   }
@@ -226,46 +301,46 @@ void IATBuilder::rebuildImportDir(std::vector<std::uint8_t> &image) const {
 }
 
 void IATBuilder::applyPatches(std::vector<std::uint8_t> &image,
-                              std::uint32_t originalImportDirVA) {
+                              std::uint32_t origImportDirVA) {
 
   const auto optionalHeader = pe::getOptionalHeader64(image.data());
   const auto sectionAlignment = optionalHeader->SectionAlignment;
   const auto fileAlignment = optionalHeader->FileAlignment;
 
-  SectionBuilder section(align<std::uint32_t>(image.size(), fileAlignment),
+  SectionBuilder codeScn(align<std::uint32_t>(image.size(), fileAlignment),
                          align<std::uint32_t>(image.size(), sectionAlignment),
                          sectionAlignment, fileAlignment);
 
-  section.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA |
+  codeScn.addCharacteristics(IMAGE_SCN_CNT_INITIALIZED_DATA |
                              IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_READ |
                              IMAGE_SCN_MEM_EXECUTE);
 
-  buildRedirectStubs(image, section);
+  buildRedirectStubs(image, codeScn);
 
-  redirectOriginalIAT(image, section, originalImportDirVA);
+  redirectOriginalIAT(image, origImportDirVA);
 
   LOG_INFO("applying patches...");
 
   for (const auto &resolver : iatResolvers) {
-    resolver->applyPatches(image, section);
+    resolver->applyPatches(image, codeScn);
   }
 
   const auto sectionHeader = appendImageSectionHeader(image.data());
   std::memcpy(sectionHeader->Name, ".dmp1\0\0", 8);
-  sectionHeader->PointerToRawData = section.getOffset();
-  sectionHeader->VirtualAddress = section.getRVA();
-  sectionHeader->Misc.VirtualSize = section.getRawSize();
-  sectionHeader->SizeOfRawData = section.getFileSize();
-  sectionHeader->Characteristics = section.getCharacteristics();
+  sectionHeader->PointerToRawData = codeScn.getOffset();
+  sectionHeader->VirtualAddress = codeScn.getRVA();
+  sectionHeader->Misc.VirtualSize = codeScn.getRawSize();
+  sectionHeader->SizeOfRawData = codeScn.getFileSize();
+  sectionHeader->Characteristics = codeScn.getCharacteristics();
 
-  section.finalize();
+  codeScn.finalize();
 
-  image.resize(section.getOffset());
-  image.insert(image.end(), section.getData().begin(), section.getData().end());
+  image.resize(codeScn.getOffset());
+  image.insert(image.end(), codeScn.getData().begin(), codeScn.getData().end());
 }
 
 void IATBuilder::buildRedirectStubs(const std::vector<std::uint8_t> &image,
-                                    SectionBuilder &scnBuilder) {
+                                    SectionBuilder &codeScn) {
 
   const auto ntHeaders = pe::getNtHeaders(image.data());
   const auto &newImportDir = ntHeaders->OptionalHeader64.ImportDirectory;
@@ -290,14 +365,10 @@ void IATBuilder::buildRedirectStubs(const std::vector<std::uint8_t> &image,
     for (; originalFirstThunk->u1.AddressOfData != 0;
          ++originalFirstThunk, ++firstThunk) {
 
-      const auto importByName = reinterpret_cast<const pe::ImageImportByName *>(
-          image.data() +
-          *ntHeaders->rvaToFileOffset(originalFirstThunk->u1.AddressOfData));
-
       // jmp    QWORD PTR [rip+offset]
       std::uint8_t stub[] = {0xff, 0x25, 0x00, 0x00, 0x00, 0x00};
 
-      const auto stubRVA = scnBuilder.getRVA() + scnBuilder.getRawSize();
+      const auto stubRVA = codeScn.getRVA() + codeScn.getRawSize();
 
       const std::uint32_t addressOfDataRVA =
           *ntHeaders->fileOffsetToRVA(reinterpret_cast<const std::uint8_t *>(
@@ -307,27 +378,40 @@ void IATBuilder::buildRedirectStubs(const std::vector<std::uint8_t> &image,
       *reinterpret_cast<std::int32_t *>(&stub[2]) = static_cast<std::int32_t>(
           addressOfDataRVA - (stubRVA + sizeof(stub)));
 
-      scnBuilder.append(stub);
+      codeScn.append(stub);
 
-      if (const auto importFunction =
-              findImportFunction(libraryName, importByName->Name)) {
+      if (IMAGE_SNAP_BY_ORDINAL64(originalFirstThunk->u1.Ordinal)) {
+        if (const auto importFunction = findImportFunction(
+                libraryName, static_cast<std::uint16_t>(IMAGE_ORDINAL64(
+                                 originalFirstThunk->u1.Ordinal)))) {
 
-        importFunction->RedirectStubRVA = stubRVA;
+          importFunction->setRedirectStub(stubRVA);
+        }
+      } else {
+        const auto importByName =
+            reinterpret_cast<const pe::ImageImportByName *>(
+                image.data() + *ntHeaders->rvaToFileOffset(
+                                   originalFirstThunk->u1.AddressOfData));
+
+        if (const auto importFunction =
+                findImportFunction(libraryName, importByName->Name)) {
+
+          importFunction->setRedirectStub(stubRVA);
+        }
       }
     }
   }
 }
 
 void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
-                                     SectionBuilder &scnBuilder,
-                                     std::uint32_t originalImportDirVA) const {
+                                     std::uint32_t origImportDirVA) const {
 
   const auto ntHeaders = pe::getNtHeaders(image.data());
 
   LOG_INFO("redirecting original IAT...");
 
   for (auto importDesc = reinterpret_cast<pe::ImageImportDescriptor *>(
-           image.data() + originalImportDirVA);
+           image.data() + origImportDirVA);
        importDesc->Name != 0; importDesc++) {
 
     const auto libraryName =
@@ -341,34 +425,41 @@ void IATBuilder::redirectOriginalIAT(std::vector<std::uint8_t> &image,
     for (; originalFirstThunk->u1.AddressOfData != 0;
          originalFirstThunk++, firstThunk++) {
 
-      const auto importByName = reinterpret_cast<pe::ImageImportByName *>(
-          image.data() +
-          *ntHeaders->rvaToFileOffset(originalFirstThunk->u1.AddressOfData));
+      if (IMAGE_SNAP_BY_ORDINAL64(originalFirstThunk->u1.Ordinal)) {
+        if (const auto importFunction = findImportFunction(
+                libraryName, static_cast<std::uint16_t>(IMAGE_ORDINAL64(
+                                 originalFirstThunk->u1.Ordinal)))) {
 
-      if (const auto importFunction =
-              findImportFunction(libraryName, importByName->Name)) {
+          firstThunk->u1.Function =
+              moduleInfo->getImageBase() + *importFunction->getRedirectStub();
+        }
+      } else {
+        const auto importByName = reinterpret_cast<pe::ImageImportByName *>(
+            image.data() +
+            *ntHeaders->rvaToFileOffset(originalFirstThunk->u1.AddressOfData));
 
-        firstThunk->u1.Function =
-            moduleInfo->getImageBase() + importFunction->RedirectStubRVA;
+        if (const auto importFunction =
+                findImportFunction(libraryName, importByName->Name)) {
+
+          firstThunk->u1.Function =
+              moduleInfo->getImageBase() + *importFunction->getRedirectStub();
+        }
       }
     }
   }
 }
 
-bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) const {
+bool IATBuilder::constructImportDir(SectionBuilder &dataScn) const {
 
   const auto importDirLayout = getImportDirLayout();
 
-  const std::uint32_t importDirRVA =
-      sectionBuilder.getRVA() + sectionBuilder.getRawSize();
+  const std::uint32_t importDirRVA = dataScn.getRVA() + dataScn.getRawSize();
 
-  sectionBuilder.getMutableData().resize(
-      static_cast<std::size_t>(sectionBuilder.getRawSize()) +
-                               importDirLayout.Size,
-      0);
+  dataScn.getMutableData().resize(
+      static_cast<std::size_t>(dataScn.getRawSize()) + importDirLayout.Size, 0);
 
-  std::uint8_t *importDirData = sectionBuilder.getMutableData().data() +
-                                (importDirRVA - sectionBuilder.getRVA());
+  std::uint8_t *importDirData =
+      dataScn.getMutableData().data() + (importDirRVA - dataScn.getRVA());
 
   std::size_t functionIdx = 0;
   std::size_t libraryNameOffset = importDirLayout.LibraryNameOffset;
@@ -390,30 +481,41 @@ bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) const {
     importDesc->FirstThunk = importDirRVA + importDirLayout.FirstThunkOffset +
                              sizeof(pe::ImageThunkData64) * (i + functionIdx);
 
-    std::memcpy(importDirData + libraryNameOffset, imp.Library.data(),
-                imp.Library.size() + sizeof('\0'));
+    std::memcpy(importDirData + libraryNameOffset, imp.getName().data(),
+                imp.getName().size() + sizeof('\0'));
 
-    for (std::size_t j = 0; j < imp.Functions.size(); j++, functionIdx++) {
-      auto &func = imp.Functions[j];
+    for (std::size_t j = 0; j < imp.getFunctions().size(); j++, functionIdx++) {
+      const auto &func = imp.getFunctions()[j];
 
       const auto originalFirstThunk = reinterpret_cast<pe::ImageThunkData64 *>(
           importDirData + importDirLayout.OriginalFirstThunkOffset +
           sizeof(pe::ImageThunkData64) * (i + functionIdx));
 
-      originalFirstThunk->u1.AddressOfData = importDirRVA + functionNameOffset;
+      if (func.getName().index() == 0) {
+        const auto &funcName = std::get<0>(func.getName());
 
-      const auto importByName = reinterpret_cast<pe::ImageImportByName *>(
-          importDirData + functionNameOffset);
+        originalFirstThunk->u1.AddressOfData =
+            importDirRVA + functionNameOffset;
 
-      importByName->Hint = 0;
-      std::memcpy(importByName->Name, func.Name.data(),
-                  func.Name.size() + sizeof('\0'));
+        const auto importByName = reinterpret_cast<pe::ImageImportByName *>(
+            importDirData + functionNameOffset);
 
-      functionNameOffset +=
-          sizeof(std::uint16_t) + func.Name.size() + sizeof('\0');
+        importByName->Hint = 0;
+
+        std::memcpy(importByName->Name, funcName.data(),
+                    funcName.size() + sizeof('\0'));
+
+        functionNameOffset +=
+            sizeof(std::uint16_t) + funcName.size() + sizeof('\0');
+      } else if (func.getName().index() == 1) {
+        originalFirstThunk->u1.Ordinal =
+            static_cast<std::uint64_t>(std::get<1>(func.getName()));
+
+        originalFirstThunk->u1.Ordinal |= IMAGE_ORDINAL_FLAG64;
+      }
     }
 
-    libraryNameOffset += imports[i].Library.size() + sizeof('\0');
+    libraryNameOffset += imports[i].getName().size() + sizeof('\0');
   }
 
   return true;

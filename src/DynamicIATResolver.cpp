@@ -95,12 +95,11 @@ bool DynamicIATResolver::applyPatches(std::vector<std::uint8_t> &image,
   std::size_t iatPatchCount = 0;
   for (const auto &[functionPtrRVA, resolvedImport] : resolvedImportsByRVAs) {
     if (const auto importFunction = iatBuilder.findImportFunction(
-            resolvedImport.Library, resolvedImport.Function);
-        importFunction && importFunction->RedirectStubRVA) {
+            resolvedImport.Library, resolvedImport.Function)) {
 
       *reinterpret_cast<std::uint64_t *>(image.data() + functionPtrRVA) =
           iatBuilder.getModuleInfo()->getImageBase() +
-          importFunction->RedirectStubRVA;
+          *importFunction->getRedirectStub();
 
       ++iatPatchCount;
     }

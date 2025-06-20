@@ -126,12 +126,14 @@ bool Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
 
     std::string exportName;
     if (!readString(moduleInfo.getImageBase() + exportNameRVA, exportName,
-                          250)) {
+                    250)) {
       return false;
     }
 
     ModuleExportInfo exportInfo(exportName, exportOrdinal, exportFunctionRVA);
     moduleInfo.addExport(exportInfo);
   }
+
+  return true;
 }
 } // namespace dmadump
