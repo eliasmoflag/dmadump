@@ -1,4 +1,4 @@
-#include "IATResolverBase.hpp"
+#include "IATResolver.hpp"
 #include "Dumper.hpp"
 #include "ModuleList.hpp"
 #include "IATBuilder.hpp"
@@ -6,10 +6,10 @@
 #include <ranges>
 
 namespace dmadump {
-IATResolverBase::IATResolverBase(IATBuilder &iatBuilder)
+IATResolver::IATResolver(IATBuilder &iatBuilder)
     : iatBuilder(iatBuilder) {}
 
-std::uint64_t IATResolverBase::getLowestModuleStartAddress() const {
+std::uint64_t IATResolver::getLowestModuleStartAddress() const {
   std::uint64_t result = std::numeric_limits<std::uint64_t>::max();
 
   for (const auto &mod : std::views::values(
@@ -20,7 +20,7 @@ std::uint64_t IATResolverBase::getLowestModuleStartAddress() const {
   return result;
 }
 
-std::uint64_t IATResolverBase::getHighestModuleEndAddress() const {
+std::uint64_t IATResolver::getHighestModuleEndAddress() const {
   std::uint64_t result = std::numeric_limits<std::uint64_t>::min();
 
   for (const auto &mod : std::views::values(
@@ -31,7 +31,7 @@ std::uint64_t IATResolverBase::getHighestModuleEndAddress() const {
   return result;
 }
 
-std::vector<std::uint32_t> IATResolverBase::findDirectCalls(
+std::vector<std::uint32_t> IATResolver::findDirectCalls(
     const std::uint8_t *searchBegin, const std::uint8_t *searchEnd,
     const std::uint32_t searchRVA, const std::uint32_t functionPtrRVA) {
 

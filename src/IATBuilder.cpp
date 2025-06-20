@@ -1,7 +1,7 @@
 #include "IATBuilder.hpp"
 #include "Dumper.hpp"
 #include "ModuleList.hpp"
-#include "IATResolverBase.hpp"
+#include "IATResolver.hpp"
 #include "Logging.hpp"
 #include "PE.hpp"
 #include "SectionBuilder.hpp"

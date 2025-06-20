@@ -6,7 +6,7 @@
 namespace dmadump {
 class Dumper;
 class ModuleInfo;
-class IATResolverBase;
+class IATResolver;
 class SectionBuilder;
 
 class RedirectStubInfo {
@@ -54,7 +54,7 @@ public:
   bool rebuild(std::vector<std::uint8_t> &image);
 
   template <typename T, typename... Args>
-    requires std::is_base_of_v<IATResolverBase, T>
+    requires std::is_base_of_v<IATResolver, T>
   inline IATBuilder &addResolver(Args &&...args) {
     iatResolvers.push_back(
         std::make_unique<T>(*this, std::forward<Args>(args)...));
@@ -97,7 +97,7 @@ protected:
 
   const ModuleInfo *moduleInfo;
 
-  std::vector<std::unique_ptr<IATResolverBase>> iatResolvers;
+  std::vector<std::unique_ptr<IATResolver>> iatResolvers;
 
   std::vector<ImportLibrary> imports;
 };

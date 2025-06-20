@@ -1,10 +1,10 @@
 #pragma once
-#include "IATResolverBase.hpp"
+#include "IATResolver.hpp"
 #include "PE.hpp"
 #include <unordered_map>
 
 namespace dmadump {
-class DynamicIATResolver : public IATResolverBase {
+class DynamicIATResolver : public IATResolver {
 public:
   static constexpr std::uint32_t DefaultRequiredScnAttrs =
       IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE;

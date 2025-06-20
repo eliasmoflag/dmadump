@@ -9,7 +9,7 @@ namespace dmadump {
 DynamicIATResolver::DynamicIATResolver(IATBuilder &iatBuilder,
                                        const std::uint32_t requiredScnAttrs,
                                        const std::uint32_t allowedScnAttrs)
-    : IATResolverBase(iatBuilder), requiredScnAttrs(requiredScnAttrs),
+    : IATResolver(iatBuilder), requiredScnAttrs(requiredScnAttrs),
       allowedScnAttrs(allowedScnAttrs) {}
 
 bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {

@@ -12,11 +12,11 @@ public:
   std::string Function;
 };
 
-class IATResolverBase {
+class IATResolver {
 public:
-  explicit IATResolverBase(IATBuilder &iatBuilder);
+  explicit IATResolver(IATBuilder &iatBuilder);
 
-  virtual ~IATResolverBase() = default;
+  virtual ~IATResolver() = default;
 
   virtual bool resolve(const std::vector<std::uint8_t> &image) = 0;
 
