@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <format>
 #include <string_view>
 
@@ -13,7 +14,7 @@ class Logger {
 public:
   enum Level { Info, Warn, Error, Success, COUNT };
 
-  static void init();
+  static void init(std::ostream *output);
 
   static void write(std::string_view buffer);
 
@@ -49,5 +50,8 @@ public:
   static inline void success(const std::string_view format, Args &&...args) {
     write(Level::Success, std::vformat(format, std::make_format_args(args...)));
   }
+
+private:
+  static inline std::ostream *output{nullptr};
 };
 } // namespace dmadump

@@ -27,7 +27,7 @@ int main(const int argc, const char *const argv[]) {
     return 1;
   }
 
-  Logger::init();
+  Logger::init(&std::cout);
 
 #ifdef _WIN32
   if (!enablePrivilege("SeDebugPrivilege")) {

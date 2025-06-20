@@ -6,7 +6,8 @@
 #endif
 
 namespace dmadump {
-void Logger::init() {
+void Logger::init(std::ostream *output) {
+
 #ifdef _WIN32
   const auto outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
   if (outputHandle != INVALID_HANDLE_VALUE) {
@@ -17,12 +18,16 @@ void Logger::init() {
     }
   }
 #endif
+
+  Logger::output = output;
 }
 
 void Logger::write(const std::string_view buffer) {
-  std::cout << buffer;
-  if (buffer.ends_with('\n')) {
-    std::cout << std::flush;
+  if (output) {
+    *output << buffer;
+    if (buffer.ends_with('\n')) {
+      *output << std::flush;
+    }
   }
 }
 
