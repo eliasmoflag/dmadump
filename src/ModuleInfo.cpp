@@ -5,7 +5,7 @@
 
 namespace dmadump {
 ModuleInfo::ModuleInfo(const std::string &name,
-                       const std::filesystem::path filePath,
+                       const std::filesystem::path &filePath,
                        const std::uint64_t imageBase,
                        const std::uint32_t imageSize,
                        const std::vector<ModuleExportInfo> &exports)

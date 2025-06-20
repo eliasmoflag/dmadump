@@ -4,8 +4,7 @@
 namespace dmadump {
 class ModuleExportInfo {
 public:
-  ModuleExportInfo(const std::string &name, std::uint16_t ordinal,
-                   std::uint32_t rva);
+  ModuleExportInfo(std::string name, std::uint16_t ordinal, std::uint32_t rva);
 
   const std::string &getName() const;
   std::uint16_t getOrdinal() const;

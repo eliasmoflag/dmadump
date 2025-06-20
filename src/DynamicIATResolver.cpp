@@ -66,6 +66,7 @@ bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {
       resolvedImport.Library = moduleInfo->getName();
       resolvedImport.Function = exportInfo->getName();
 
+      resolvedImports.push_back(resolvedImport);
       resolvedImportsByRVAs.insert({rva, resolvedImport});
 
       LOG_INFO("found import {}:{} at RVA 0x{:X}", moduleInfo->getName(),
@@ -78,14 +79,8 @@ bool DynamicIATResolver::resolve(const std::vector<std::uint8_t> &image) {
   return true;
 }
 
-std::vector<ResolvedImport> DynamicIATResolver::getImports() const {
-  std::vector<ResolvedImport> deps;
-
-  for (const auto &[rva, imp] : resolvedImportsByRVAs) {
-    deps.push_back(imp);
-  }
-
-  return deps;
+const std::vector<ResolvedImport> &DynamicIATResolver::getImports() const {
+  return resolvedImports;
 }
 
 bool DynamicIATResolver::applyPatches(std::vector<std::uint8_t> &image,

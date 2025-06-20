@@ -4,16 +4,16 @@
 
 namespace dmadump {
 void ModuleList::addModule(ModuleInfo &&moduleInfo) {
-  const std::string moduleID = moduleInfo.getLibraryID();
-  if (moduleMap.find(moduleID) == moduleMap.end()) {
+  if (const std::string moduleID = moduleInfo.getLibraryID();
+      !moduleMap.contains(moduleID)) {
     moduleMap.emplace(moduleID,
                       std::make_unique<ModuleInfo>(std::move(moduleInfo)));
   }
 }
 
 void ModuleList::addModule(const ModuleInfo &moduleInfo) {
-  const std::string moduleID = moduleInfo.getLibraryID();
-  if (moduleMap.find(moduleID) == moduleMap.end()) {
+  if (const std::string &moduleID = moduleInfo.getLibraryID();
+      !moduleMap.contains(moduleID)) {
     moduleMap.emplace(moduleID, std::make_unique<ModuleInfo>(moduleInfo));
   }
 }
@@ -26,8 +26,8 @@ ModuleList::getModuleMap() const {
 const ModuleInfo *
 ModuleList::getModuleByName(const std::string_view moduleName) const {
 
-  const auto found = moduleMap.find(simplifyLibraryName(moduleName));
-  if (found != moduleMap.end()) {
+  if (const auto found = moduleMap.find(simplifyLibraryName(moduleName));
+      found != moduleMap.end()) {
 
     return found->second.get();
   }

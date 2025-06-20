@@ -188,7 +188,7 @@ void IATBuilder::resolveImports(const std::vector<std::uint8_t> &image) {
   LOG_WRITE("\n");
 }
 
-void IATBuilder::rebuildImportDir(std::vector<std::uint8_t> &image) {
+void IATBuilder::rebuildImportDir(std::vector<std::uint8_t> &image) const {
 
   LOG_INFO("rebuilding import address table...");
 
@@ -363,8 +363,8 @@ bool IATBuilder::constructImportDir(SectionBuilder &sectionBuilder) const {
       sectionBuilder.getRVA() + sectionBuilder.getRawSize();
 
   sectionBuilder.getMutableData().resize(
-      static_cast<std::size_t>(sectionBuilder.getRawSize() +
-                               importDirLayout.Size),
+      static_cast<std::size_t>(sectionBuilder.getRawSize()) +
+                               importDirLayout.Size,
       0);
 
   std::uint8_t *importDirData = sectionBuilder.getMutableData().data() +

@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 namespace dmadump {
@@ -77,7 +76,7 @@ protected:
 
   void resolveImports(const std::vector<std::uint8_t> &image);
 
-  void rebuildImportDir(std::vector<std::uint8_t> &image);
+  void rebuildImportDir(std::vector<std::uint8_t> &image) const;
 
   void applyPatches(std::vector<std::uint8_t> &image,
                     std::uint32_t originalImportDirVA);

@@ -1,10 +1,8 @@
 #pragma once
 #include "ModuleList.hpp"
-#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <vmmdll.h>
 
 namespace dmadump {

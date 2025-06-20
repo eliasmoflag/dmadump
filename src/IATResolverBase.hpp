@@ -1,14 +1,10 @@
 #pragma once
-#include "PE.hpp"
-#include <optional>
 #include <string>
 #include <vector>
 
 namespace dmadump {
 class IATBuilder;
 class SectionBuilder;
-class ModuleInfo;
-class ModuleExportInfo;
 
 class ResolvedImport {
 public:
@@ -18,13 +14,13 @@ public:
 
 class IATResolverBase {
 public:
-  IATResolverBase(IATBuilder &iatBuilder);
+  explicit IATResolverBase(IATBuilder &iatBuilder);
 
   virtual ~IATResolverBase() = default;
 
   virtual bool resolve(const std::vector<std::uint8_t> &image) = 0;
 
-  virtual std::vector<ResolvedImport> getImports() const = 0;
+  virtual const std::vector<ResolvedImport> &getImports() const = 0;
 
   virtual bool applyPatches(std::vector<std::uint8_t> &image,
                             SectionBuilder &scnBuilder) = 0;

@@ -48,7 +48,7 @@ std::uint32_t SectionBuilder::getCharacteristics() const {
   return characteristics;
 }
 
-void SectionBuilder::addCharacteristics(std::uint32_t flags) {
+void SectionBuilder::addCharacteristics(const std::uint32_t flags) {
   this->characteristics |= flags;
 }
 } // namespace dmadump

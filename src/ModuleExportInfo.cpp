@@ -1,9 +1,11 @@
 #include "ModuleExportInfo.hpp"
+#include <utility>
 
 namespace dmadump {
-ModuleExportInfo::ModuleExportInfo(const std::string &name,
-                                   std::uint16_t ordinal, std::uint32_t rva)
-    : name(name), ordinal(ordinal), rva(rva) {}
+ModuleExportInfo::ModuleExportInfo(std::string name,
+                                   const std::uint16_t ordinal,
+                                   const std::uint32_t rva)
+    : name(std::move(name)), ordinal(ordinal), rva(rva) {}
 
 const std::string &ModuleExportInfo::getName() const { return name; }
 
