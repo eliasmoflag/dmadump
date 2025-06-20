@@ -1,37 +1,35 @@
 #pragma once
-#include "ModuleList.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vmmdll.h>
 
 namespace dmadump {
+class ModuleList;
+class ModuleInfo;
+
 class Dumper {
 public:
-  Dumper(VMM_HANDLE vmmHandle, std::uint32_t processId);
+  virtual ~Dumper() = default;
 
-  ~Dumper();
+  virtual bool loadModuleInfo() = 0;
 
-  bool loadModuleInfo(bool loadEAT);
+  virtual ModuleList *getModuleList() const = 0;
 
-  const std::unique_ptr<ModuleList> &getModuleList() const;
+  virtual bool readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
+                          std::uint32_t *bytesRead = nullptr) = 0;
 
-  bool readMemory(std::uint64_t va, void *buffer, std::uint32_t size,
-                  std::uint32_t *bytesRead = nullptr, bool forceUpdate = false);
+  virtual bool readMemoryCached(std::uint64_t va, void *buffer,
+                                std::uint32_t size,
+                                std::uint32_t *bytesRead = nullptr,
+                                bool forceUpdateCache = false);
 
-  bool readString(std::uint64_t va, std::string &readInto,
-                  std::uint32_t maxRead, bool forceUpdate = false);
+  virtual bool readString(std::uint64_t va, std::string &readInto,
+                          std::uint32_t maxRead, bool forceUpdateCache = false);
 
 protected:
-  void loadModuleEAT(ModuleInfo &moduleInfo);
+  virtual bool loadModuleEAT(ModuleInfo &moduleInfo);
 
 protected:
-  VMM_HANDLE vmmHandle;
-
-  std::uint32_t processId;
-
-  std::unique_ptr<ModuleList> moduleList;
-
   std::unordered_map<std::uint64_t, std::unique_ptr<std::uint8_t[]>>
       memoryCache;
 };

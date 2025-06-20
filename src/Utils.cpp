@@ -41,12 +41,12 @@ createVmm(const std::vector<const char *> &argv) {
 std::optional<std::uint32_t> findProcessByName(VMM_HANDLE vmmHandle,
                                                const char *processName) {
 
-  DWORD processId;
-  if (!VMMDLL_PidGetFromName(vmmHandle, processName, &processId)) {
+  DWORD processID;
+  if (!VMMDLL_PidGetFromName(vmmHandle, processName, &processID)) {
     return std::nullopt;
   }
 
-  return processId;
+  return processID;
 }
 
 #ifdef _WIN32

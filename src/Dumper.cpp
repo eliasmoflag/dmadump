@@ -1,53 +1,11 @@
 #include "Dumper.hpp"
+#include "ModuleInfo.hpp"
 #include "PE.hpp"
-#include "Utils.hpp"
-#include <filesystem>
-#include <format>
 
 namespace dmadump {
-Dumper::Dumper(VMM_HANDLE vmmHandle, const std::uint32_t processId)
-    : vmmHandle(vmmHandle), processId(processId) {
-  moduleList = std::make_unique<ModuleList>();
-}
-
-Dumper::~Dumper() { VMMDLL_Close(vmmHandle); }
-
-bool Dumper::loadModuleInfo(const bool loadEAT) {
-
-  PVMMDLL_MAP_MODULE moduleMap;
-  if (!VMMDLL_Map_GetModuleU(vmmHandle, processId, &moduleMap,
-                             VMMDLL_MODULE_FLAG_NORMAL)) {
-    return false;
-  }
-
-  for (std::uint32_t i = 0; i < moduleMap->cMap; i++) {
-    const auto &moduleEntry = moduleMap->pMap[i];
-
-    ModuleInfo moduleInfo(
-        std::filesystem::path(moduleEntry.uszText).filename().string(),
-        moduleEntry.uszFullName, moduleEntry.vaBase, moduleEntry.cbImageSize,
-        {});
-
-    if (loadEAT) {
-      loadModuleEAT(moduleInfo);
-    }
-
-    moduleList->addModule(std::move(moduleInfo));
-  }
-
-  VMMDLL_MemFree(moduleMap);
-
-  return true;
-}
-
-const std::unique_ptr<ModuleList> &Dumper::getModuleList() const {
-  return moduleList;
-}
-
-bool Dumper::readMemory(const std::uint64_t va, void *buffer,
-                        const std::uint32_t size, std::uint32_t *bytesRead,
-                        const bool forceUpdate) {
-
+bool Dumper::readMemoryCached(std::uint64_t va, void *buffer,
+                              std::uint32_t size, std::uint32_t *bytesRead,
+                              bool forceUpdateCache) {
   if (va == 0 || size == 0) {
     return false;
   }
@@ -60,12 +18,11 @@ bool Dumper::readMemory(const std::uint64_t va, void *buffer,
   for (std::uint64_t page = startPageVA; page < endPageVA; page += 0x1000) {
 
     auto &cached = memoryCache[page];
-    if (!cached || forceUpdate) {
+    if (!cached || forceUpdateCache) {
       auto pageData = std::make_unique<std::uint8_t[]>(0x1000);
 
-      DWORD pageBytesRead;
-      if (!VMMDLL_MemReadEx(vmmHandle, processId, page, pageData.get(), 0x1000,
-                            &pageBytesRead, 0)) {
+      std::uint32_t pageBytesRead;
+      if (!readMemory(page, pageData.get(), 0x1000, &pageBytesRead)) {
         if (bytesRead) {
           *bytesRead = numBytesRead;
         }
@@ -92,15 +49,14 @@ bool Dumper::readMemory(const std::uint64_t va, void *buffer,
   return true;
 }
 
-bool Dumper::readString(const std::uint64_t va, std::string &readInto,
-                        const std::uint32_t maxRead, const bool forceUpdate) {
-
+bool Dumper::readString(std::uint64_t va, std::string &readInto,
+                        std::uint32_t maxRead, bool forceUpdateCache) {
   char buffer[16];
   for (std::uint32_t totalBytesRead = 0, bytesRead = 0;
        totalBytesRead < maxRead; totalBytesRead += bytesRead) {
 
-    readMemory(va + totalBytesRead, buffer, sizeof(buffer), &bytesRead,
-               forceUpdate);
+    readMemoryCached(va + totalBytesRead, buffer, sizeof(buffer), &bytesRead,
+                     forceUpdateCache);
     if (bytesRead == 0) {
       return totalBytesRead != 0;
     }
@@ -118,25 +74,26 @@ bool Dumper::readString(const std::uint64_t va, std::string &readInto,
   return true;
 }
 
-void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
+bool Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
 
   std::uint8_t header[0x1000];
-  if (!readMemory(moduleInfo.getImageBase(), &header, sizeof(header),
-                  nullptr)) {
-    return;
+  if (!readMemoryCached(moduleInfo.getImageBase(), &header, sizeof(header),
+                        nullptr)) {
+    return false;
   }
 
   const auto optionalHeader = pe::getOptionalHeader64(header);
   const auto &exportDirEntry = optionalHeader->ExportDirectory;
 
-  if (exportDirEntry.VirtualAddress == 0) {
-    return;
+  if (exportDirEntry.VirtualAddress == 0 || exportDirEntry.Size == 0) {
+    return true;
   }
 
   pe::ImageExportDirectory exportDir = {0};
-  if (!readMemory(moduleInfo.getImageBase() + exportDirEntry.VirtualAddress,
-                  &exportDir, sizeof(exportDir), nullptr)) {
-    return;
+  if (!readMemoryCached(moduleInfo.getImageBase() +
+                            exportDirEntry.VirtualAddress,
+                        &exportDir, sizeof(exportDir), nullptr)) {
+    return false;
   }
 
   const std::uint64_t exportAddressTable =
@@ -149,28 +106,28 @@ void Dumper::loadModuleEAT(ModuleInfo &moduleInfo) {
   for (std::size_t i = 0; i < exportDir.NumberOfNames; i++) {
 
     std::uint32_t exportNameRVA;
-    if (!readMemory(exportNameTable + i * sizeof(exportNameRVA), &exportNameRVA,
-                    sizeof(exportNameRVA))) {
-      continue;
+    if (!readMemoryCached(exportNameTable + i * sizeof(exportNameRVA),
+                          &exportNameRVA, sizeof(exportNameRVA))) {
+      return false;
     }
 
     std::uint16_t exportOrdinal;
-    if (!readMemory(exportNameOrdinalTable + i * sizeof(exportOrdinal),
-                    &exportOrdinal, sizeof(exportOrdinal))) {
-      continue;
+    if (!readMemoryCached(exportNameOrdinalTable + i * sizeof(exportOrdinal),
+                          &exportOrdinal, sizeof(exportOrdinal))) {
+      return false;
     }
 
     std::uint32_t exportFunctionRVA;
-    if (!readMemory(exportAddressTable +
-                        exportOrdinal * sizeof(exportFunctionRVA),
-                    &exportFunctionRVA, sizeof(exportFunctionRVA))) {
-      continue;
+    if (!readMemoryCached(exportAddressTable +
+                              exportOrdinal * sizeof(exportFunctionRVA),
+                          &exportFunctionRVA, sizeof(exportFunctionRVA))) {
+      return false;
     }
 
     std::string exportName;
     if (!readString(moduleInfo.getImageBase() + exportNameRVA, exportName,
-                    250)) {
-      continue;
+                          250)) {
+      return false;
     }
 
     ModuleExportInfo exportInfo(exportName, exportOrdinal, exportFunctionRVA);

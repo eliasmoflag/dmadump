@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "CmdLine.hpp"
-#include "Dumper.hpp"
+#include "VMMDumper.hpp"
 #include "DynamicIATResolver.hpp"
 #include "IATBuilder.hpp"
 #include "Logging.hpp"
@@ -61,7 +61,7 @@ int dumpModule(VMM_HANDLE vmmHandle,
                const std::string &moduleName,
                const std::set<std::string> &resolveIAT) {
 
-  std::uint32_t processId;
+  std::uint32_t processID;
   if (processName) {
 
     LOG_INFO("looking for process {}...", *processName);
@@ -72,17 +72,16 @@ int dumpModule(VMM_HANDLE vmmHandle,
       return 1;
     }
 
-    processId = *found;
+    processID = *found;
   } else {
-    processId = 4;
+    processID = 4;
   }
 
-  Dumper dumper(vmmHandle, processId);
+  VMMDumper dumper(vmmHandle, processID);
 
   LOG_INFO("loading module information...");
 
-  if (const bool loadEAT = !resolveIAT.empty();
-      !dumper.loadModuleInfo(loadEAT)) {
+  if (!dumper.loadModuleInfo()) {
     LOG_ERROR("failed to load module info.");
     return 1;
   }
@@ -103,8 +102,8 @@ int dumpModule(VMM_HANDLE vmmHandle,
   std::vector<std::uint8_t> moduleData(moduleInfo->getImageSize());
 
   std::uint32_t bytesRead = 0;
-  dumper.readMemory(moduleInfo->getImageBase(), moduleData.data(),
-                    moduleData.size(), &bytesRead);
+  dumper.readMemoryCached(moduleInfo->getImageBase(), moduleData.data(),
+                          moduleData.size(), &bytesRead);
 
   moduleData.resize(bytesRead);
 

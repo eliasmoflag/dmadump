@@ -1,5 +1,6 @@
 #include "DynamicIATResolver.hpp"
 #include "Dumper.hpp"
+#include "ModuleList.hpp"
 #include "IATBuilder.hpp"
 #include "Logging.hpp"
 #include "Utils.hpp"

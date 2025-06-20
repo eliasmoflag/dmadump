@@ -1,5 +1,6 @@
 #include "IATResolverBase.hpp"
 #include "Dumper.hpp"
+#include "ModuleList.hpp"
 #include "IATBuilder.hpp"
 #include <limits>
 #include <ranges>
