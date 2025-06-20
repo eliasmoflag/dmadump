@@ -1,5 +1,5 @@
-#include "SectionBuilder.hpp"
-#include "Utils.hpp"
+#include <dmadump/SectionBuilder.hpp>
+#include <dmadump/Utils.hpp>
 
 namespace dmadump {
 SectionBuilder::SectionBuilder(const std::uint32_t sectionOffset,

@@ -3,13 +3,15 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <set>
 
-#include "CmdLine.hpp"
-#include "VMMDumper.hpp"
-#include "DynamicIATResolver.hpp"
-#include "IATBuilder.hpp"
-#include "Logging.hpp"
-#include "Utils.hpp"
+#include <dmadump/dumper/VMMDumper.hpp>
+#include <dmadump/iat/DynamicIATResolver.hpp>
+#include <dmadump/IATBuilder.hpp>
+#include <dmadump/Logging.hpp>
+#include <dmadump/Utils.hpp>
+
+#include <cxxopts.hpp>
 
 using namespace dmadump;
 
@@ -20,10 +22,46 @@ static int dumpModule(VMM_HANDLE vmmHandle,
 
 int main(const int argc, const char *const argv[]) {
 
-  CmdLine cmdLine;
-  if (!cmdLine.load(argc, argv)) {
-    std::cout << "invalid arguments specified.\n\n"
-              << cmdLine.help() << std::endl;
+  cxxopts::Options parser("dmadump");
+
+  // clang-format off
+  parser.add_options()
+      ("p,process", "target process to dump", cxxopts::value<std::string>())
+      ("m,module", "target module to dump", cxxopts::value<std::string>())
+      ("iat", "type of IAT obfuscation to target", cxxopts::value<std::vector<std::string>>())
+      ("device", "memory acquisition method", cxxopts::value<std::string>())
+      ("debug", "show debug output", cxxopts::value<bool>());
+  // clang-format on
+
+  const auto options = parser.parse(argc, argv);
+
+  std::string processName;
+  std::string moduleName;
+  std::string deviceType;
+  std::set<std::string> iatTargets;
+  bool debugMode;
+
+  try {
+    if (options["process"].count()) {
+      processName = options["process"].as<std::string>();
+    }
+
+    moduleName = options["module"].as<std::string>();
+
+    if (options["iat"].count()) {
+      for (const auto &resolver :
+           options["iat"].as<std::vector<std::string>>()) {
+        iatTargets.insert(resolver);
+      }
+    }
+
+    deviceType = options["device"].count() ? options["device"].as<std::string>()
+                                           : "fpga";
+
+    debugMode = options["debug"].count() != 0;
+
+  } catch (const std::exception &e) {
+    std::cout << e.what() << "\n\n" << parser.help() << std::endl;
     return 1;
   }
 
@@ -37,8 +75,8 @@ int main(const int argc, const char *const argv[]) {
 
   LOG_INFO("initializing vmm...");
 
-  std::vector vmmArgs{"-device", cmdLine.DeviceType.c_str()};
-  if (cmdLine.Debug) {
+  std::vector vmmArgs{"-device", deviceType.c_str()};
+  if (debugMode) {
     vmmArgs.insert(vmmArgs.end(), {"-v", "-printf"});
   }
 
@@ -52,8 +90,7 @@ int main(const int argc, const char *const argv[]) {
     return 1;
   }
 
-  return dumpModule(vmmHandle->get(), cmdLine.ProcessName, cmdLine.ModuleName,
-                    cmdLine.IAT);
+  return dumpModule(vmmHandle->get(), processName, moduleName, iatTargets);
 }
 
 int dumpModule(VMM_HANDLE vmmHandle,

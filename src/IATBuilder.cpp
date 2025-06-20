@@ -1,11 +1,11 @@
-#include "IATBuilder.hpp"
-#include "Dumper.hpp"
-#include "ModuleList.hpp"
-#include "IATResolver.hpp"
-#include "Logging.hpp"
-#include "PE.hpp"
-#include "SectionBuilder.hpp"
-#include "Utils.hpp"
+#include <dmadump/IATBuilder.hpp>
+#include <dmadump/Dumper.hpp>
+#include <dmadump/ModuleList.hpp>
+#include <dmadump/IATResolver.hpp>
+#include <dmadump/Logging.hpp>
+#include <dmadump/PE.hpp>
+#include <dmadump/SectionBuilder.hpp>
+#include <dmadump/Utils.hpp>
 #include <algorithm>
 #include <numeric>
 

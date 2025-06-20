@@ -1,7 +1,7 @@
-#include "VMMDumper.hpp"
-#include "PE.hpp"
-#include "Utils.hpp"
-#include "Logging.hpp"
+#include <dmadump/dumper/VMMDumper.hpp>
+#include <dmadump/PE.hpp>
+#include <dmadump/Utils.hpp>
+#include <dmadump/Logging.hpp>
 #include <filesystem>
 #include <format>
 

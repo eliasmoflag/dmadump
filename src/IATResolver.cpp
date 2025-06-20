@@ -1,7 +1,7 @@
-#include "IATResolver.hpp"
-#include "Dumper.hpp"
-#include "ModuleList.hpp"
-#include "IATBuilder.hpp"
+#include <dmadump/IATResolver.hpp>
+#include <dmadump/Dumper.hpp>
+#include <dmadump/ModuleList.hpp>
+#include <dmadump/IATBuilder.hpp>
 #include <limits>
 #include <ranges>
 

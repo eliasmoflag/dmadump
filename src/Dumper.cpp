@@ -1,6 +1,6 @@
-#include "Dumper.hpp"
-#include "ModuleInfo.hpp"
-#include "PE.hpp"
+#include <dmadump/Dumper.hpp>
+#include <dmadump/ModuleInfo.hpp>
+#include <dmadump/PE.hpp>
 
 namespace dmadump {
 bool Dumper::readMemoryCached(std::uint64_t va, void *buffer,

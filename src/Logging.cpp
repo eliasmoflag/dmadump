@@ -1,4 +1,4 @@
-#include "Logging.hpp"
+#include <dmadump/Logging.hpp>
 #include <iostream>
 
 #ifdef _WIN32

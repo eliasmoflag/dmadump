@@ -1,4 +1,4 @@
-#include "ModuleExportInfo.hpp"
+#include <dmadump/ModuleExportInfo.hpp>
 #include <utility>
 
 namespace dmadump {

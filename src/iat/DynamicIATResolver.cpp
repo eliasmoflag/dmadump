@@ -1,9 +1,9 @@
-#include "DynamicIATResolver.hpp"
-#include "Dumper.hpp"
-#include "ModuleList.hpp"
-#include "IATBuilder.hpp"
-#include "Logging.hpp"
-#include "Utils.hpp"
+#include <dmadump/iat/DynamicIATResolver.hpp>
+#include <dmadump/Dumper.hpp>
+#include <dmadump/ModuleList.hpp>
+#include <dmadump/IATBuilder.hpp>
+#include <dmadump/Logging.hpp>
+#include <dmadump/Utils.hpp>
 
 namespace dmadump {
 DynamicIATResolver::DynamicIATResolver(IATBuilder &iatBuilder,

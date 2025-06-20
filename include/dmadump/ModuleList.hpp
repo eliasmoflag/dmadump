@@ -1,5 +1,5 @@
 #pragma once
-#include "ModuleInfo.hpp"
+#include <dmadump/ModuleInfo.hpp>
 #include <filesystem>
 #include <memory>
 #include <string>

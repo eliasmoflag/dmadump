@@ -1,6 +1,6 @@
 #pragma once
-#include "IATResolver.hpp"
-#include "PE.hpp"
+#include <dmadump/IATResolver.hpp>
+#include <dmadump/PE.hpp>
 #include <unordered_map>
 
 namespace dmadump {

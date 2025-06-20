@@ -1,5 +1,5 @@
 #pragma once
-#include "ModuleExportInfo.hpp"
+#include <dmadump/ModuleExportInfo.hpp>
 #include <filesystem>
 #include <string>
 #include <vector>

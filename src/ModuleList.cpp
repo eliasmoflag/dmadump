@@ -1,5 +1,5 @@
-#include "ModuleList.hpp"
-#include "Utils.hpp"
+#include <dmadump/ModuleList.hpp>
+#include <dmadump/Utils.hpp>
 #include <ranges>
 
 namespace dmadump {

@@ -1,4 +1,4 @@
-#include "PE.hpp"
+#include <dmadump/PE.hpp>
 #include <algorithm>
 
 namespace dmadump::pe {

@@ -1,5 +1,5 @@
 #pragma once
-#include "PE.hpp"
+#include <dmadump/PE.hpp>
 #include <expected>
 #include <memory>
 #include <optional>

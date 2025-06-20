@@ -1,6 +1,6 @@
 #pragma once
-#include "Dumper.hpp"
-#include "ModuleList.hpp"
+#include <dmadump/Dumper.hpp>
+#include <dmadump/ModuleList.hpp>
 #include <memory>
 #include <vmmdll.h>
 

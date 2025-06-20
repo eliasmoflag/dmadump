@@ -1,5 +1,5 @@
-#include "ModuleInfo.hpp"
-#include "Utils.hpp"
+#include <dmadump/ModuleInfo.hpp>
+#include <dmadump/Utils.hpp>
 #include <filesystem>
 #include <vector>
 

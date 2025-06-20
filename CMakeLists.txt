@@ -14,18 +14,20 @@ include("./cmake/MemProcFS.cmake")
 include("./cmake/cxxopts.cmake")
 
 file(GLOB_RECURSE SOURCES
-  "./src/*.hpp"
+  "./include/*.hpp"
   "./src/*.cpp"
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES})
 
-add_executable(dmadump ${SOURCES})
+add_library(dmadump STATIC ${SOURCES})
 
-target_link_libraries(dmadump PRIVATE LeechCore VMM cxxopts::cxxopts)
+target_include_directories(dmadump PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(dmadump PUBLIC LeechCore VMM)
 
 target_compile_features(dmadump PRIVATE cxx_std_23)
 
 target_compile_definitions(dmadump PRIVATE NOMINMAX)
 
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "dmadump")
+add_subdirectory("./cli")

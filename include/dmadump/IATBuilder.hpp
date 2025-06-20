@@ -4,7 +4,7 @@
 #include <vector>
 #include <variant>
 #include <optional>
-#include "ImportDirLayout.hpp"
+#include <dmadump/ImportDirLayout.hpp>
 
 namespace dmadump {
 class Dumper;
