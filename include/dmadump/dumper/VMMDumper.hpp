@@ -9,7 +9,7 @@ class VMMDumper : public Dumper {
 public:
   VMMDumper(VMM_HANDLE vmmHandle, std::uint32_t processID);
 
-  ~VMMDumper() override;
+  ~VMMDumper() override = default;
 
   bool loadModuleInfo() override;
 

@@ -11,8 +11,6 @@ VMMDumper::VMMDumper(VMM_HANDLE vmmHandle, const std::uint32_t processID)
   moduleList = std::make_unique<ModuleList>();
 }
 
-VMMDumper::~VMMDumper() { VMMDLL_Close(vmmHandle); }
-
 bool VMMDumper::loadModuleInfo() {
 
   PVMMDLL_MAP_MODULE moduleMap;
