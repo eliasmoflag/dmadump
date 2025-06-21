@@ -15,7 +15,7 @@ A personal tool for dumping PE modules and resolving dynamic imports from kernel
 ./dmadump-cli --process game.exe --module game.exe --method win32 --iat dynamic
 
 # Dump via VMware-based memory access (note: you may need to run this as administrator)
-./dmadump-cli --process ping.exe --module ping.exe --method vmware://ro=1 --iat dynamic
+./dmadump-cli --process ping.exe --module ping.exe --method vmware://ro=1 --iat dynamic --debug
 ```
 
 ## Building
