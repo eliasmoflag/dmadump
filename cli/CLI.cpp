@@ -195,7 +195,7 @@ bool CLI::dumpModule() const {
     return 1;
   }
 
-  LOG_INFO("found {} at 0x{:X} (size: {}).", moduleName,
+  LOG_INFO("found {} at 0x{:X} (size: 0x{:X}).", moduleName,
            moduleInfo->getImageBase(), moduleInfo->getImageSize());
 
   LOG_INFO("reading image data...");
