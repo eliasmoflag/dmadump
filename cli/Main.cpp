@@ -3,19 +3,28 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <functional>
 #include <set>
 
-#include <dmadump/dumper/VMMDumper.hpp>
-#include <dmadump/iat/DynamicIATResolver.hpp>
 #include <dmadump/IATBuilder.hpp>
 #include <dmadump/Logging.hpp>
 #include <dmadump/Utils.hpp>
+#include <dmadump/Dumper/VMMDumper.hpp>
+#include <dmadump/Dumper/Win32Dumper.hpp>
+#include <dmadump/IAT/DynamicIATResolver.hpp>
 
 #include <cxxopts.hpp>
 
 using namespace dmadump;
 
-static int dumpModule(VMM_HANDLE vmmHandle,
+static std::unique_ptr<Dumper>
+selectDumper(const std::string &method,
+             const std::optional<std::string> &processName, bool debugMode);
+
+static std::expected<VmmHandle, std::string>
+createVmm(const std::vector<const char *> &argv);
+
+static int dumpModule(Dumper &dumper,
                       const std::optional<std::string> &processName,
                       const std::string &moduleName,
                       const std::set<std::string> &resolveIAT = {});
@@ -29,19 +38,23 @@ int main(const int argc, const char *const argv[]) {
       ("p,process", "target process to dump", cxxopts::value<std::string>())
       ("m,module", "target module to dump", cxxopts::value<std::string>())
       ("iat", "type of IAT obfuscation to target", cxxopts::value<std::vector<std::string>>())
-      ("device", "memory acquisition method", cxxopts::value<std::string>())
+#ifdef _WIN32
+      ("method", "memory acquisition method; defaults to platform API", cxxopts::value<std::string>())
+#else
+      ("method", "memory acquisition method (VMM)", cxxopts::value<std::string>())
+#endif
       ("debug", "show debug output", cxxopts::value<bool>());
   // clang-format on
 
-  const auto options = parser.parse(argc, argv);
-
   std::string processName;
   std::string moduleName;
-  std::string deviceType;
+  std::string method;
   std::set<std::string> iatTargets;
   bool debugMode;
 
   try {
+    const auto options = parser.parse(argc, argv);
+
     if (options["process"].count()) {
       processName = options["process"].as<std::string>();
     }
@@ -55,8 +68,8 @@ int main(const int argc, const char *const argv[]) {
       }
     }
 
-    deviceType = options["device"].count() ? options["device"].as<std::string>()
-                                           : "fpga";
+    method =
+        options["method"].count() ? options["method"].as<std::string>() : "";
 
     debugMode = options["debug"].count() != 0;
 
@@ -71,42 +84,72 @@ int main(const int argc, const char *const argv[]) {
   if (!enablePrivilege("SeDebugPrivilege")) {
     LOG_WARN("failed to enable SeDebugPrivilege.");
   }
+
 #endif
 
-  LOG_INFO("initializing vmm...");
+  const auto dumper = selectDumper(method, processName, debugMode);
+  if (!dumper) {
+    return 1;
+  }
 
-  std::vector vmmArgs{"-device", deviceType.c_str()};
+  return dumpModule(*dumper, processName, moduleName, iatTargets);
+}
+
+std::unique_ptr<Dumper>
+selectDumper(const std::string &method,
+             const std::optional<std::string> &processName, bool debugMode) {
+
+#ifdef _WIN32
+  if (method.empty() || method == "win32") {
+    std::uint32_t processID;
+    if (processName) {
+
+      LOG_INFO("looking for process {}...", *processName);
+
+      const auto found = Win32Dumper::findProcessByName(*processName);
+      if (!found) {
+        LOG_ERROR("failed to find process {}.", *processName);
+        return nullptr;
+      }
+
+      processID = *found;
+    } else {
+      LOG_ERROR("kernel module dumping is not supported by the win32 dumper.");
+      return nullptr;
+    }
+
+    const HANDLE processHandle =
+        OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+
+    return std::make_unique<Win32Dumper>(Win32Handle(processHandle));
+  }
+#endif
+
+  std::vector vmmArgs{"-device", method.c_str()};
   if (debugMode) {
     vmmArgs.insert(vmmArgs.end(), {"-v", "-printf"});
   }
 
-  const auto vmmHandle = createVmm(vmmArgs);
+  auto vmmHandle = createVmm(vmmArgs);
   if (!vmmHandle) {
     if (vmmHandle.error().empty()) {
       LOG_ERROR("failed to initialize vmm, no error message provided.");
     } else {
       LOG_ERROR("failed to initialize vmm, error: {}.", vmmHandle.error());
     }
-    return 1;
+    return nullptr;
   }
-
-  return dumpModule(vmmHandle->get(), processName, moduleName, iatTargets);
-}
-
-int dumpModule(VMM_HANDLE vmmHandle,
-               const std::optional<std::string> &processName,
-               const std::string &moduleName,
-               const std::set<std::string> &resolveIAT) {
 
   std::uint32_t processID;
   if (processName) {
 
     LOG_INFO("looking for process {}...", *processName);
 
-    const auto found = findProcessByName(vmmHandle, processName->c_str());
+    const auto found =
+        VmmDumper::findProcessByName(*vmmHandle, processName->c_str());
     if (!found) {
       LOG_ERROR("failed to find process {}.", *processName);
-      return 1;
+      return nullptr;
     }
 
     processID = *found;
@@ -114,7 +157,41 @@ int dumpModule(VMM_HANDLE vmmHandle,
     processID = 4;
   }
 
-  VMMDumper dumper(vmmHandle, processID);
+  return std::make_unique<VmmDumper>(std::move(*vmmHandle), processID);
+}
+
+std::expected<VmmHandle, std::string>
+createVmm(const std::vector<const char *> &argv) {
+
+  PLC_CONFIG_ERRORINFO errorInfo;
+  VMM_HANDLE vmmHandle = VMMDLL_InitializeEx(
+      argv.size(), const_cast<LPCSTR *>(argv.data()), &errorInfo);
+
+  if (!vmmHandle) {
+    std::string errorMessage;
+    if (errorInfo) {
+      errorMessage =
+          std::string(errorInfo->wszUserText,
+                      errorInfo->wszUserText + errorInfo->cwszUserText);
+
+      LcMemFree(errorInfo);
+    }
+
+    return std::unexpected(errorMessage);
+  }
+
+  if (!VMMDLL_InitializePlugins(vmmHandle)) {
+    VMMDLL_Close(vmmHandle);
+    return nullptr;
+  }
+
+  return VmmHandle(vmmHandle);
+}
+
+int dumpModule(Dumper &dumper,
+               const std::optional<std::string> &processName,
+               const std::string &moduleName,
+               const std::set<std::string> &resolveIAT) {
 
   LOG_INFO("loading module information...");
 

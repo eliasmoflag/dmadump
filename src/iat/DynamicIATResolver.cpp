@@ -1,4 +1,4 @@
-#include <dmadump/iat/DynamicIATResolver.hpp>
+#include <dmadump/IAT/DynamicIATResolver.hpp>
 #include <dmadump/Dumper.hpp>
 #include <dmadump/ModuleList.hpp>
 #include <dmadump/IATBuilder.hpp>

@@ -10,45 +10,6 @@
 using namespace std::chrono_literals;
 
 namespace dmadump {
-std::expected<SharedVmmHandle, std::string>
-createVmm(const std::vector<const char *> &argv) {
-
-  PLC_CONFIG_ERRORINFO errorInfo;
-  VMM_HANDLE vmmHandle = VMMDLL_InitializeEx(
-      argv.size(), const_cast<LPCSTR *>(argv.data()), &errorInfo);
-
-  if (!vmmHandle) {
-    std::string errorMessage;
-    if (errorInfo) {
-      errorMessage =
-          std::string(errorInfo->wszUserText,
-                      errorInfo->wszUserText + errorInfo->cwszUserText);
-
-      LcMemFree(errorInfo);
-    }
-
-    return std::unexpected(errorMessage);
-  }
-
-  if (!VMMDLL_InitializePlugins(vmmHandle)) {
-    VMMDLL_Close(vmmHandle);
-    return nullptr;
-  }
-
-  return SharedVmmHandle{vmmHandle, &VMMDLL_Close};
-}
-
-std::optional<std::uint32_t> findProcessByName(VMM_HANDLE vmmHandle,
-                                               const char *processName) {
-
-  DWORD processID;
-  if (!VMMDLL_PidGetFromName(vmmHandle, processName, &processID)) {
-    return std::nullopt;
-  }
-
-  return processID;
-}
-
 #ifdef _WIN32
 bool enablePrivilege(const char *privilegeName) {
 
