@@ -10,15 +10,15 @@
 
 class CLI {
 public:
-  int run(const int argc, const char *const argv[]);
+  int run(int argc, const char *const argv[]);
 
 private:
-  bool parseOptions(const int argc, const char *const argv[]);
+  bool parseOptions(int argc, const char *const argv[]);
 
   std::unique_ptr<dmadump::Dumper> selectDumper() const;
 
-  std::expected<dmadump::VmmHandle, std::string>
-  createVmm(const std::vector<const char *> &argv) const;
+  static std::expected<dmadump::VmmHandle, std::string>
+  createVmm(const std::vector<const char *> &argv) ;
 
   bool dumpModule() const;
 

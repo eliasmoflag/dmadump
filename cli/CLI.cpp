@@ -27,7 +27,6 @@ int CLI::run(const int argc, const char *const argv[]) {
   if (!enablePrivilege("SeDebugPrivilege")) {
     LOG_WARN("failed to enable SeDebugPrivilege.");
   }
-
 #endif
 
   dumper = selectDumper();
@@ -49,12 +48,12 @@ bool CLI::parseOptions(const int argc, const char *const argv[]) {
   parser.add_options()
       ("p,process", "target process to dump", cxxopts::value<std::string>())
       ("m,module", "target module to dump", cxxopts::value<std::string>())
-      ("iat", "type of IAT obfuscation to target", cxxopts::value<std::vector<std::string>>())
 #ifdef _WIN32
       ("method", "memory acquisition method; defaults to platform API", cxxopts::value<std::string>())
 #else
       ("method", "memory acquisition method (VMM)", cxxopts::value<std::string>())
 #endif
+      ("iat", "type of IAT obfuscation to target", cxxopts::value<std::vector<std::string>>())
       ("debug", "show debug output", cxxopts::value<bool>());
   // clang-format on
 
@@ -74,8 +73,13 @@ bool CLI::parseOptions(const int argc, const char *const argv[]) {
       }
     }
 
+#ifdef _WIN32
     method =
         options["method"].count() ? options["method"].as<std::string>() : "";
+#else
+    method =
+        options["method"].count() ? options["method"].as<std::string>() : "fpga";
+#endif
 
     debugMode = options["debug"].count() != 0;
 
@@ -136,7 +140,7 @@ std::unique_ptr<Dumper> CLI::selectDumper() const {
     LOG_INFO("looking for process {}...", *processName);
 
     const auto found =
-        VmmDumper::findProcessByName(*vmmHandle, processName->c_str());
+        VmmDumper::findProcessByName(vmmHandle->get(), processName->c_str());
     if (!found) {
       LOG_ERROR("failed to find process {}.", *processName);
       return nullptr;
@@ -151,7 +155,7 @@ std::unique_ptr<Dumper> CLI::selectDumper() const {
 }
 
 std::expected<VmmHandle, std::string>
-CLI::createVmm(const std::vector<const char *> &argv) const {
+CLI::createVmm(const std::vector<const char *> &argv) {
 
   PLC_CONFIG_ERRORINFO errorInfo;
   VMM_HANDLE vmmHandle = VMMDLL_InitializeEx(
