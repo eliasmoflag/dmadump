@@ -1,36 +1,48 @@
-#include <expected>
-#include <fstream>
+#include "CLI.hpp"
 #include <iostream>
-#include <memory>
-#include <optional>
-#include <functional>
-#include <set>
-
-#include <dmadump/IATBuilder.hpp>
+#include <fstream>
 #include <dmadump/Logging.hpp>
 #include <dmadump/Utils.hpp>
-#include <dmadump/Dumper/VMMDumper.hpp>
-#include <dmadump/Dumper/Win32Dumper.hpp>
+#include <dmadump/IATBuilder.hpp>
 #include <dmadump/IAT/DynamicIATResolver.hpp>
-
+#include <dmadump/Dumper/VmmDumper.hpp>
+#include <dmadump/Dumper/Win32Dumper.hpp>
 #include <cxxopts.hpp>
 
 using namespace dmadump;
 
-static std::unique_ptr<Dumper>
-selectDumper(const std::string &method,
-             const std::optional<std::string> &processName, bool debugMode);
-
-static std::expected<VmmHandle, std::string>
-createVmm(const std::vector<const char *> &argv);
-
-static int dumpModule(Dumper &dumper,
-                      const std::optional<std::string> &processName,
-                      const std::string &moduleName,
-                      const std::set<std::string> &resolveIAT = {});
-
 int main(const int argc, const char *const argv[]) {
+  return CLI().run(argc, argv);
+}
 
+int CLI::run(const int argc, const char *const argv[]) {
+
+  if (!parseOptions(argc, argv)) {
+    return 1;
+  }
+
+  Logger::init(&std::cout);
+
+#ifdef _WIN32
+  if (!enablePrivilege("SeDebugPrivilege")) {
+    LOG_WARN("failed to enable SeDebugPrivilege.");
+  }
+
+#endif
+
+  dumper = selectDumper();
+  if (!dumper) {
+    return 1;
+  }
+
+  if (!dumpModule()) {
+    return false;
+  }
+
+  return true;
+}
+
+bool CLI::parseOptions(const int argc, const char *const argv[]) {
   cxxopts::Options parser("dmadump");
 
   // clang-format off
@@ -45,12 +57,6 @@ int main(const int argc, const char *const argv[]) {
 #endif
       ("debug", "show debug output", cxxopts::value<bool>());
   // clang-format on
-
-  std::string processName;
-  std::string moduleName;
-  std::string method;
-  std::set<std::string> iatTargets;
-  bool debugMode;
 
   try {
     const auto options = parser.parse(argc, argv);
@@ -75,29 +81,13 @@ int main(const int argc, const char *const argv[]) {
 
   } catch (const std::exception &e) {
     std::cout << e.what() << "\n\n" << parser.help() << std::endl;
-    return 1;
+    return false;
   }
 
-  Logger::init(&std::cout);
-
-#ifdef _WIN32
-  if (!enablePrivilege("SeDebugPrivilege")) {
-    LOG_WARN("failed to enable SeDebugPrivilege.");
-  }
-
-#endif
-
-  const auto dumper = selectDumper(method, processName, debugMode);
-  if (!dumper) {
-    return 1;
-  }
-
-  return dumpModule(*dumper, processName, moduleName, iatTargets);
+  return true;
 }
 
-std::unique_ptr<Dumper>
-selectDumper(const std::string &method,
-             const std::optional<std::string> &processName, bool debugMode) {
+std::unique_ptr<Dumper> CLI::selectDumper() const {
 
 #ifdef _WIN32
   if (method.empty() || method == "win32") {
@@ -114,7 +104,7 @@ selectDumper(const std::string &method,
 
       processID = *found;
     } else {
-      LOG_ERROR("kernel module dumping is not supported by the win32 dumper.");
+      LOG_ERROR("kernel memory is inaccessible by the win32 dumper.");
       return nullptr;
     }
 
@@ -161,7 +151,7 @@ selectDumper(const std::string &method,
 }
 
 std::expected<VmmHandle, std::string>
-createVmm(const std::vector<const char *> &argv) {
+CLI::createVmm(const std::vector<const char *> &argv) const {
 
   PLC_CONFIG_ERRORINFO errorInfo;
   VMM_HANDLE vmmHandle = VMMDLL_InitializeEx(
@@ -188,21 +178,18 @@ createVmm(const std::vector<const char *> &argv) {
   return VmmHandle(vmmHandle);
 }
 
-int dumpModule(Dumper &dumper,
-               const std::optional<std::string> &processName,
-               const std::string &moduleName,
-               const std::set<std::string> &resolveIAT) {
+bool CLI::dumpModule() const {
 
   LOG_INFO("loading module information...");
 
-  if (!dumper.loadModuleInfo()) {
+  if (!dumper->loadModuleInfo()) {
     LOG_ERROR("failed to load module info.");
     return 1;
   }
 
   LOG_INFO("looking for module {}...", moduleName);
 
-  const auto moduleInfo = dumper.getModuleList()->getModuleByName(moduleName);
+  const auto moduleInfo = dumper->getModuleList()->getModuleByName(moduleName);
   if (!moduleInfo) {
     LOG_ERROR("failed to find module info for {}.", moduleName);
     return 1;
@@ -216,8 +203,8 @@ int dumpModule(Dumper &dumper,
   std::vector<std::uint8_t> moduleData(moduleInfo->getImageSize());
 
   std::uint32_t bytesRead = 0;
-  dumper.readMemoryCached(moduleInfo->getImageBase(), moduleData.data(),
-                          moduleData.size(), &bytesRead);
+  dumper->readMemoryCached(moduleInfo->getImageBase(), moduleData.data(),
+                           moduleData.size(), &bytesRead);
 
   moduleData.resize(bytesRead);
 
@@ -238,10 +225,10 @@ int dumpModule(Dumper &dumper,
   const auto optionalHeader = pe::getOptionalHeader64(moduleData.data());
   optionalHeader->ImageBase = moduleInfo->getImageBase();
 
-  if (!resolveIAT.empty()) {
-    IATBuilder iatBuilder(dumper, moduleInfo);
+  if (!iatTargets.empty()) {
+    IATBuilder iatBuilder(*dumper, moduleInfo);
 
-    if (resolveIAT.contains("dynamic")) {
+    if (iatTargets.contains("dynamic")) {
       iatBuilder.addResolver<DynamicIATResolver>();
     }
 
